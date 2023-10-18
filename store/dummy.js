@@ -1,9 +1,9 @@
 const db = {
     availability: [{
-        month: "october",
+        month: "octubre",
         weekend: 2,
         days: [20, 21, 22, 23],
-        shift: [[[],[],[]],[[],[],[]],[[],[],[]],[[],[],[]]]
+        shift: [[[],[],[],[]],[[],[],[],[]],[[],[],[],[]]]
     }]
 };
 
@@ -12,7 +12,7 @@ async function list(table) {
 }
 async function get(table, month, weekend) {
     let record = await list(table);
-    return record.filter( item => item.month === month && item.weekend === 2)[0] || null;
+    return record.filter( item => item.month === month && item.weekend === weekend)[0] || null;
 }
 
 async function upsert(table, data) {
@@ -21,7 +21,7 @@ async function upsert(table, data) {
     }
     let record = await get(table, data.month, data.weekend)
     if (record) {
-        record = data
+        Object.assign(record, data)
     } else {
         db[table].push(data);
     }

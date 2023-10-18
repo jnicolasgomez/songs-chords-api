@@ -9,13 +9,26 @@
     <body>
         <main>
             <section class="section1">
-                <h1>APP disponibilidad Octubre</h1>
+                <form action="/action_page.php">
+                <label for="users">Quien eres?:</label>
+                <select name="users" id="users" onchange="setUser(this.value)">
+                    <option value="a">A</option>
+                    <option value="b">B</option>
+                    <option value="c">C</option>
+                    <option value="d">D</option>
+                    <option value="e">E</option>
+                    <option value="f">F</option>
+                    <option value="g">G</option>
+                    <option value="todos">H</option>
+                </select>
+                </form>
+                <h1>APP disponibilidad <span id="month"></span></h1>
                 <table>
                     <tr>
-                        <th>Viernes 20</th>
-                        <th>Sabado 21</th>
-                        <th>Domingo 22</th>
-                        <th>Lunes 23</th>
+                        <th>Viernes <span id="day1"></span></th>
+                        <th>Sabado <span id="day2"></span></th>
+                        <th>Domingo <span id="day3"></span></th>
+                        <th>Lunes <span id="day4"></span></th>
                     </tr>
                     <tr>
                         <td><button id="0" onClick="setColor(0)">Mañana</button></td>
@@ -38,7 +51,7 @@
                 </table>
             </section>
             <section class="section2">
-                <button onClick="confirm()">Confirmar</button>
+                <button onClick="sendAvailability()">Enviar</button>
             </section>
         </main>
         <footer>

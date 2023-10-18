@@ -3,12 +3,17 @@ import logger from 'morgan'
 import path from 'path'
 import { fileURLToPath } from 'url';
 import availability from './availability/routes.js';
+import bodyParser from 'body-parser'
+import cors from 'cors'
+import morgan from 'morgan';
 
 const port = process.env.PORT ?? 3000
 
 const app = express()
-app.use(logger('dev'))
 
+app.use(bodyParser.json())
+app.use(logger('dev'))
+app.use(cors())
 // app.get('/', (req, res) => {
 //     res.sendFile(process.cwd() + '/client/index.html')
 // })

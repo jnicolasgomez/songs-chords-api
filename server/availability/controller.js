@@ -31,26 +31,7 @@ export default function(injectedStore, injectedCache) {
     }
 
     async function upsertAvailablity(body) {
-        const user = {
-            name: body.name,
-            username: body.username
-        }
-
-        if (body.id) {
-            user.id = body.id
-        } else {
-            user.id = nanoid()
-        }
-
-        if (body.password || body.username) {
-            await auth.upsert({
-                id: user.id,
-                username: user.username,
-                password: body.password
-            })
-        }
-
-        return injectedStore.upsert(TABLE, user)
+        return injectedStore.upsert(TABLE, body)
     }
     return { upsertAvailablity , listAvailability}
 }
