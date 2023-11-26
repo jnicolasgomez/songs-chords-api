@@ -1,8 +1,8 @@
 
-const API_URL = ''
+const API_URL = 'https://b784-2800-484-777a-921a-1836-938f-5b33-da29.ngrok-free.app'
 var count = 1;
 var currentSate = {
-    user: "a",
+    user: "dave",
     month: "octubre",
     weekend: 2,
     days: [20,21,22,23],

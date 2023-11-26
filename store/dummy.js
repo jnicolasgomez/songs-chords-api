@@ -4,22 +4,24 @@ const db = {
         weekend: 2,
         days: [20, 21, 22, 23],
         shift: [[[],[],[],[]],[[],[],[],[]],[[],[],[],[]]]
-    }]
+    }],
+    songs: []
 };
 
 async function list(table) {
     return db[table];
 }
-async function get(table, month, weekend) {
+async function get(table,id) {
     let record = await list(table);
-    return record.filter( item => item.month === month && item.weekend === weekend)[0] || null;
+    // return record.filter( item => item.month === month && item.weekend === weekend)[0] || null;
+    return record.filter( item => item.id === id)[0] || null;
 }
 
 async function upsert(table, data) {
     if (!db[table]) {
         db[table] = [];
     }
-    let record = await get(table, data.month, data.weekend)
+    let record = await get(table, data.id)
     if (record) {
         Object.assign(record, data)
     } else {
