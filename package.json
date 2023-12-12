@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node ./api/index.js",
+    "start": "node ./songs/index.js",
     "dev": "node --watch ./songs/index.js",
+    "build": "",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
