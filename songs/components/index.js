@@ -1,3 +1,4 @@
 import controller from './controller.js'
+import * as store from '../../store/mongoStore.js'
 
-export default controller();
+export default controller(store);

@@ -17,7 +17,7 @@ app.use(bodyParser.json())
 app.use(logger('dev'))
 app.use(cors(corsOptions))
 
-app.use('/api/songs', songs);
+app.use('/api', songs);
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`)
