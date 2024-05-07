@@ -36,7 +36,19 @@ export default function(injectedStore, injectedCache) {
 
     async function getSongByList(id) {
         const currentList =  await injectedStore.get(LISTS_TABLE, id);
-        return injectedStore.query(SONGS_TABLE, {"id": {$in: currentList.songs}});
+        const songsIds = currentList.songs;
+        const songsList = await injectedStore.query(SONGS_TABLE, {"id": {$in: songsIds}});
+        // Create a map to store the indices of songsIds
+        const indexMap = {};
+        songsIds.forEach((id, index) => {
+            indexMap[id] = index;
+        });
+        // Sort songsList based on the order of songsIds
+        songsList.sort((a, b) => {
+            return indexMap[a.id] - indexMap[b.id];
+        });
+
+        return songsList;
     }
     
     return { upsertSong ,
