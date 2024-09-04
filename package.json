@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node ./songs/index.js",
-    "dev": "node --watch ./src/songs/index.js",
+    "start": "node ./src/songs/index.js",
+    "dev": "node --watch --env-file=.env ./src/songs/index.js",
     "test": "jest"
   },
   "keywords": [],
