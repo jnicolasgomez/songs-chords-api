@@ -1,5 +1,5 @@
 import { MongoClient } from 'mongodb';
-import config from '../config.js';
+import config from '../../config.js';
 
 const uri = config.mongoDb.uri;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
