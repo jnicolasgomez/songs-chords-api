@@ -1,6 +1,8 @@
 import {Router} from 'express';
+import { checkJwt } from '../../middleware/session.js';
 import {success, error} from '../../network/response.js'
 import controller from './index.js'
+
 
 const router = Router();
 
@@ -29,13 +31,13 @@ router.get('/songs/list/:id', (req, res, next) => {
     }).catch(next);
 });
 
-router.post('/lists' ,(req, res, next) => {
+router.post('/lists', (req, res, next) => {
     controller.upsertList(req.body).then(item => {
         success(req, res, item, 201)
     }).catch(next);
 });
 
-router.get('/lists', (req, res, next) => {
+router.get('/lists', checkJwt, (req, res, next) => {
     controller.getLists().then(item => {
         success(req, res, item, 200)
     }).catch(next);
