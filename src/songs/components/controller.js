@@ -9,29 +9,44 @@ export default function(injectedStore, injectedCache) {
     if (!injectedStore) {
         injectedStore = store;
     }
-    async function listSongs() {
-        let songs = await injectedStore.list(SONGS_TABLE);
-        let list = songs.map((item) => {
-            return {id: item.id, title: item.title}
-        });
-        return list;
+    async function listSongs(userId) {
+        if (userId) {
+            return (await songsByUser(userId)) + (await publicSongs());
+        } else {
+            return publicSongs();
+        }
     }
 
-    async function getLists() {
-        let lists = await injectedStore.list(LISTS_TABLE);
-        return lists;
+    async function songsByUser(userId) {
+        let songs = await injectedStore.query(SONGS_TABLE, {
+            $or: [
+                { user_uid: userId }
+            ]
+        });
+        return songs;
+    }
+
+    async function publicSongs() {
+        let songs = await injectedStore.query(SONGS_TABLE, 
+            { $or: [ 
+                { private: false }, 
+                { private: { $exists: false } },
+                { private: null } 
+            ] });
+        return songs;
     }
 
     function getSongById(id) {
         return injectedStore.get(SONGS_TABLE, id);
     }
 
-    async function upsertSong(body) {
-        return injectedStore.upsert(SONGS_TABLE, body)
+    function getSongsByIds(idArray) {
+        return injectedStore.query(SONGS_TABLE, { "id": { $in: idArray } });
     }
 
-    async function upsertList(body) {
-        return injectedStore.upsert(LISTS_TABLE, body)
+
+    async function upsertSong(body) {
+        return injectedStore.upsert(SONGS_TABLE, body)
     }
 
     async function getSongByList(id) {
@@ -55,6 +70,5 @@ export default function(injectedStore, injectedCache) {
         listSongs,
         getSongById,
         getSongByList,
-        getLists,
-        upsertList}
+        getSongsByIds}
 }

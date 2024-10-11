@@ -13,10 +13,19 @@ router.post('/songs' ,(req, res, next) => {
     }).catch(next);
 });
 
-router.get('/songs' ,(req, res, next) => {
-    controller.listSongs().then(item => {
-        success(req, res, item, 200)
-    }).catch(next);
+router.get('/songs', checkJwt, (req, res, next) => {
+    const { ids, userId } = req.query;
+    if (ids) {
+        const idArray = ids.split(',').map(id => id.trim());
+        controller.getSongsByIds(idArray).then(item => {
+            success(req, res, item, 200)
+        }).catch(next);
+    } else if (userId) {
+        controller.listSongs( userId ).then(item => {
+            success(req, res, item, 200)
+        }).catch(next);
+    }
+    
 });
 
 router.get('/songs/:id', (req, res, next) => {
@@ -27,18 +36,6 @@ router.get('/songs/:id', (req, res, next) => {
 
 router.get('/songs/list/:id', (req, res, next) => {
     controller.getSongByList(req.params.id).then(item => {
-        success(req, res, item, 200)
-    }).catch(next);
-});
-
-router.post('/lists', (req, res, next) => {
-    controller.upsertList(req.body).then(item => {
-        success(req, res, item, 201)
-    }).catch(next);
-});
-
-router.get('/lists', checkJwt, (req, res, next) => {
-    controller.getLists().then(item => {
         success(req, res, item, 200)
     }).catch(next);
 });
