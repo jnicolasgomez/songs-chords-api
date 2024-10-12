@@ -11,7 +11,7 @@ export default function(injectedStore, injectedCache) {
     }
     async function listSongs(userId) {
         if (userId) {
-            return (await songsByUser(userId)) + (await publicSongs());
+            return (await songsByUser(userId)).concat(await publicSongs());
         } else {
             return publicSongs();
         }

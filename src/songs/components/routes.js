@@ -24,6 +24,10 @@ router.get('/songs', checkJwt, (req, res, next) => {
         controller.listSongs( userId ).then(item => {
             success(req, res, item, 200)
         }).catch(next);
+    } else {
+        controller.listSongs().then(item => {
+            success(req, res, item, 200)
+        }).catch(next);
     }
     
 });
