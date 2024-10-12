@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node ./src/songs/index.js",
-    "dev": "node --watch --env-file=.env ./src/songs/index.js",
+    "start": "node ./src/index.js",
+    "dev": "node --watch --env-file=.env ./src/index.js",
     "test": "jest"
   },
   "keywords": [],
@@ -14,6 +14,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "4.18.2",
+    "firebase-admin": "^12.6.0",
     "mongodb": "^6.3.0",
     "morgan": "^1.10.0"
   },
