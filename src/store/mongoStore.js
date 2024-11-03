@@ -1,27 +1,29 @@
-import { MongoClient } from 'mongodb';
-import config from '../../config.js';
+import { MongoClient } from "mongodb";
+import config from "../../config.js";
 
 const uri = config.mongoDb.uri;
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+const client = new MongoClient(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 let database;
 connect();
 async function connect() {
   try {
     await client.connect();
     database = client.db();
-    console.log('Connected to MongoDB Atlas');
+    console.log("Connected to MongoDB Atlas");
   } catch (error) {
-    console.error('Error connecting to MongoDB Atlas:', error);
+    console.error("Error connecting to MongoDB Atlas:", error);
   }
 }
 
 async function disconnect() {
   await client.close();
-  console.log('Disconnected from MongoDB Atlas');
+  console.log("Disconnected from MongoDB Atlas");
 }
 
 async function list(table) {
-  
   const collection = database.collection(table);
   const result = await collection.find({}).toArray();
   return result;
@@ -53,12 +55,4 @@ async function query(table, q) {
   return result;
 }
 
-export {
-  connect,
-  disconnect,
-  list,
-  get,
-  upsert,
-  remove,
-  query,
-};
+export { connect, disconnect, list, get, upsert, remove, query };

@@ -1,6 +1,5 @@
+const sum = function (a, b) {
+  return a + b;
+};
 
-const sum = function(a,b) {
-        return a + b;
-}
-
-export{sum}
+export { sum };
