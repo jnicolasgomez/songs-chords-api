@@ -1,7 +1,10 @@
 name: Deploy to Google App Engine
 
 on:
-    push:
+    workflow_run:
+        workflows: ['Node.js CI']
+        types:
+          - completed
         branches:
             - main
 
