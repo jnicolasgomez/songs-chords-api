@@ -1,4 +1,4 @@
-import * as store from "../../store/dummy.js";
+import * as store from "@/store/dummy";
 const LISTS_TABLE = "lists";
 
 export default function (injectedStore) {

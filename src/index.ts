@@ -1,18 +1,19 @@
-import express from "express";
+import express, { Application } from "express";
 import logger from "morgan";
-import apiRoutes from "./routes/index.js";
+import apiRoutes from "./routes/index";
 import bodyParser from "body-parser";
 import cors from "cors";
 import { initializeApp } from "firebase-admin/app";
 
-const port = process.env.PORT ?? 3001;
+const port: number = parseInt(process.env.PORT ?? "3001", 10);
 
-const corsOptions = {
+const corsOptions: cors.CorsOptions = {
   origin: "*",
 };
 
 initializeApp();
-const app = express();
+
+const app: Application = express();
 
 app.use(bodyParser.json());
 app.use(logger("dev"));
@@ -23,3 +24,4 @@ app.use("/api", apiRoutes);
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+

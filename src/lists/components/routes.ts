@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { checkJwt } from "../../middleware/session.js";
-import { success } from "../../network/response.js";
-import controller from "./index.js";
+import { checkJwt } from "../../middleware/session";
+import { success } from "../../network/response";
+import controller from "./index";
 
 const router = Router();
 
