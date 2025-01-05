@@ -1,5 +1,6 @@
 // firestore.mjs
 import { getFirestore } from "firebase-admin/firestore";
+import { chunkArray } from "../utils/array.js";
 
 let db;
 /**
@@ -85,6 +86,35 @@ export async function byUserId(collection, userId) {
 }
 
 /**
+ * Gets a single document by UserId.
+ * @param {string} collection - The collection name.
+ * @param {string} uderId - The user ID.
+ * @returns {Promise<object|null>} - The document data or null if not found.
+ */
+export async function byIdsArray(collection, idsArray) {
+  if (!db) throw new Error("Not connected to Firestore");
+  let response = [];
+  try {
+    response = await queryLargeDocumentIdArray(collection, idsArray);
+  } catch (err) {
+    console.error(err);
+  }
+  return response;
+}
+
+async function queryLargeDocumentIdArray(collection, ids) {
+  const idChunks = chunkArray(ids, 10); // Split into chunks of 10
+  const results = [];
+
+  for (const chunk of idChunks) {
+    const docs = await query(collection, [["__name__", "in", chunk]]);
+    results.push(...docs);
+  }
+
+  return results;
+}
+
+/**
  * Creates or updates a document.
  * @param {string} collection - The collection name.
  * @param {string} id - The document ID.
@@ -140,6 +170,7 @@ function buildQuery(db, collection, conditions) {
 
   // Apply each condition to the query
   for (const [field, operator, value] of conditions) {
+    console.log([field, operator, value]);
     queryRef = queryRef.where(field, operator, value);
   }
   return queryRef;

@@ -5,7 +5,7 @@ const handleHttp = (res, message, error, statusCode) => {
 };
 
 const checkJwt = (req, res, next) => {
-  const userId = req.query.userId;
+  const userId = req.query.userId || req.params.id;
   if (userId) {
     try {
       const jwtByUser = req.headers.authorization || null;

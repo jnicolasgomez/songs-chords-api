@@ -30,7 +30,7 @@ export default function (injectedStore) {
   }
 
   function getSongsByIds(idArray) {
-    return injectedStore.query(SONGS_TABLE, { id: { $in: idArray } });
+    return injectedStore.byIdsArray(SONGS_TABLE, idArray);
   }
 
   async function upsertSong(body) {
@@ -40,9 +40,7 @@ export default function (injectedStore) {
   async function getSongByList(id) {
     const currentList = await injectedStore.get(LISTS_TABLE, id);
     const songsIds = currentList.songs;
-    const songsList = await injectedStore.query(SONGS_TABLE, {
-      id: { $in: songsIds },
-    });
+    const songsList = await injectedStore.byIdsArray(SONGS_TABLE, songsIds);
     // Create a map to store the indices of songsIds
     const indexMap = {};
     songsIds.forEach((id, index) => {
