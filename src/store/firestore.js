@@ -8,8 +8,9 @@ let db;
  */
 export async function connect() {
   if (!db) {
-    db = getFirestore(process.env.FIRESTORE_DATABASE_ID);
-    console.log("Connected to Firestore using Firebase Admin SDK");
+    const dbId = process.env.FIRESTORE_DATABASE_ID || "default";
+    db = getFirestore(dbId);
+    console.log("Connected to db Firestore using Firebase Admin SDK");
   }
 }
 
@@ -174,4 +175,18 @@ function buildQuery(db, collection, conditions) {
     queryRef = queryRef.where(field, operator, value);
   }
   return queryRef;
+}
+
+/**
+ * Creates a new batch object.
+ * @returns {object} - A Firestore batch object.
+ */
+export async function batch() {
+  await connect();
+  if (!db) throw new Error("Not connected to Firestore");
+  return db.batch();
+}
+
+export function collection(collection) {
+  return db.collection(collection);
 }
