@@ -29,8 +29,18 @@ export default function (injectedStore) {
     return injectedStore.get(SONGS_TABLE, id);
   }
 
-  function getSongsByIds(idArray) {
-    return injectedStore.byIdsArray(SONGS_TABLE, idArray);
+  async function getSongsByIds(idArray) {
+    const songsList = await injectedStore.byIdsArray(SONGS_TABLE, idArray);
+    // Create a map to store the indices of songsIds
+    const indexMap = {};
+    idArray.forEach((id, index) => {
+      indexMap[id] = index;
+    });
+    // Sort songsList based on the order of songsIds
+    songsList.sort((a, b) => {
+      return indexMap[a.id] - indexMap[b.id];
+    });
+    return songsList;
   }
 
   async function upsertSong(body) {
