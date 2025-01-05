@@ -1,5 +1,9 @@
 import { getAuth } from "firebase-admin/auth";
 
+const handleHttp = (res, message, error, statusCode) => {
+  res.status(statusCode).json({ message, error });
+};
+
 const checkJwt = (req, res, next) => {
   const userId = req.query.userId;
   if (userId) {
@@ -14,12 +18,14 @@ const checkJwt = (req, res, next) => {
           })
           .catch((e) => {
             console.error(e);
-            //handleHttp(res, "INVALID_SESSION", e, 403);
+            handleHttp(res, "INVALID_SESSION", e, 403);
           });
+      } else {
+        handleHttp(res, "INVALID_SESSION", "No jwt", 403);
       }
     } catch (e) {
       console.error(e);
-      //handleHttp(res, "INVALID_SESSION", e, 400);
+      handleHttp(res, "INVALID_SESSION", e, 400);
     }
   } else {
     return next();

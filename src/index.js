@@ -13,6 +13,7 @@ const corsOptions = {
 };
 
 initializeApp();
+// TODO: Only connect if firestore is the selected store
 store.connect();
 const app = express();
 
