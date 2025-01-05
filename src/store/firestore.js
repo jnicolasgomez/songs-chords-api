@@ -3,6 +3,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { chunkArray } from "../utils/array.js";
 
 let db;
+
 /**
  * Connects to Firestore using Firebase Admin SDK.
  */
@@ -28,7 +29,7 @@ export async function disconnect() {
  * @returns {Promise<object[]>} - A list of documents.
  */
 export async function list(collection) {
-  if (!db) throw new Error("Not connected to Firestore");
+  await connect();
   let response = [];
   try {
     const snapshot = await db.collection(collection).get();
@@ -45,7 +46,7 @@ export async function list(collection) {
  * @returns {Promise<object[]>} - A list of documents.
  */
 export async function listPublic(collection) {
-  if (!db) throw new Error("Not connected to Firestore");
+  await connect();
   let response = [];
   try {
     response = await query(collection, [
@@ -64,7 +65,7 @@ export async function listPublic(collection) {
  * @returns {Promise<object|null>} - The document data or null if not found.
  */
 export async function get(collection, id) {
-  if (!db) throw new Error("Not connected to Firestore");
+  await connect();
   const doc = await db.collection(collection).doc(id).get();
   return doc.exists ? { id: doc.id, ...doc.data() } : null;
 }
@@ -76,7 +77,7 @@ export async function get(collection, id) {
  * @returns {Promise<object|null>} - The document data or null if not found.
  */
 export async function byUserId(collection, userId) {
-  if (!db) throw new Error("Not connected to Firestore");
+  await connect();
   let response = [];
   try {
     response = await query(collection, [["user_id", "==", userId]]);
@@ -93,7 +94,7 @@ export async function byUserId(collection, userId) {
  * @returns {Promise<object|null>} - The document data or null if not found.
  */
 export async function byIdsArray(collection, idsArray) {
-  if (!db) throw new Error("Not connected to Firestore");
+  await connect();
   let response = [];
   try {
     response = await queryLargeDocumentIdArray(collection, idsArray);
@@ -123,7 +124,7 @@ async function queryLargeDocumentIdArray(collection, ids) {
  * @returns {Promise<void>}
  */
 export async function upsert(collection, data) {
-  if (!db) throw new Error("Not connected to Firestore");
+  await connect();
   if (!data.id) {
     const docRef = await db.collection(collection).add(data);
     console.log(`Document ${docRef.id} created in ${collection}`);
@@ -141,7 +142,7 @@ export async function upsert(collection, data) {
  * @returns {Promise<void>}
  */
 export async function remove(collection, id) {
-  if (!db) throw new Error("Not connected to Firestore");
+  await connect();
   await db.collection(collection).doc(id).delete();
   console.log(`Document ${id} removed from ${collection}`);
 }
@@ -171,7 +172,6 @@ function buildQuery(db, collection, conditions) {
 
   // Apply each condition to the query
   for (const [field, operator, value] of conditions) {
-    console.log([field, operator, value]);
     queryRef = queryRef.where(field, operator, value);
   }
   return queryRef;

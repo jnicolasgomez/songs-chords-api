@@ -4,7 +4,6 @@ import apiRoutes from "./routes/index.js";
 import bodyParser from "body-parser";
 import cors from "cors";
 import { initializeApp } from "firebase-admin/app";
-import * as store from "./store/firestore.js";
 
 const port = process.env.PORT ?? 3001;
 
@@ -13,8 +12,6 @@ const corsOptions = {
 };
 
 initializeApp();
-// TODO: Only connect if firestore is the selected store
-store.connect();
 const app = express();
 
 app.use(bodyParser.json());
