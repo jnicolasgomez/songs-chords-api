@@ -43,7 +43,7 @@ router.get("/songs", checkJwt, (req, res, next) => {
 
 router.get("/songs/user/:id", checkJwt, (req, res, next) => {
   controller
-    .listSongs(req.params.id)
+    .songsByUser(req.params.id)
     .then((item) => {
       success(req, res, item, 200);
     })

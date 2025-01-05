@@ -55,5 +55,12 @@ export default function (injectedStore) {
 
     return songsList;
   }
-  return { upsertSong, listSongs, getSongById, getSongByList, getSongsByIds };
+  return {
+    upsertSong,
+    listSongs,
+    getSongById,
+    getSongByList,
+    getSongsByIds,
+    songsByUser,
+  };
 }
