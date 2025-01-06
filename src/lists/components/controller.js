@@ -7,7 +7,7 @@ export default function (injectedStore) {
   }
 
   async function getLists() {
-    let lists = await injectedStore.list(LISTS_TABLE);
+    let lists = (await injectedStore.list(LISTS_TABLE)).reverse();
     return lists;
   }
 
@@ -42,7 +42,7 @@ export default function (injectedStore) {
         { private: null }, // Lists where private field is explicitly set to null
       ],
     });
-    return lists;
+    return lists.reverse();
   }
 
   async function upsertList(body) {

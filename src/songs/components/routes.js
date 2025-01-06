@@ -41,6 +41,15 @@ router.get("/songs", checkJwt, (req, res, next) => {
   }
 });
 
+router.get("/songs/user/:id", checkJwt, (req, res, next) => {
+  controller
+    .songsByUser(req.params.id)
+    .then((item) => {
+      success(req, res, item, 200);
+    })
+    .catch(next);
+});
+
 router.get("/songs/:id", (req, res, next) => {
   controller
     .getSongById(req.params.id)

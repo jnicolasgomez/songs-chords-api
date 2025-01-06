@@ -16,20 +16,12 @@ export default function (injectedStore) {
   }
 
   async function songsByUser(userId) {
-    let songs = await injectedStore.query(SONGS_TABLE, {
-      $or: [{ user_uid: userId }],
-    });
+    let songs = await injectedStore.byUserId(SONGS_TABLE, userId);
     return songs;
   }
 
   async function publicSongs() {
-    let songs = await injectedStore.query(SONGS_TABLE, {
-      $or: [
-        { private: false },
-        { private: { $exists: false } },
-        { private: null },
-      ],
-    });
+    let songs = await injectedStore.listPublic(SONGS_TABLE);
     return songs;
   }
 
@@ -38,9 +30,7 @@ export default function (injectedStore) {
   }
 
   async function getSongsByIds(idArray) {
-    const songsList = await injectedStore.query(SONGS_TABLE, {
-      id: { $in: idArray },
-    });
+    const songsList = await injectedStore.byIdsArray(SONGS_TABLE, idArray);
     // Create a map to store the indices of songsIds
     const indexMap = {};
     idArray.forEach((id, index) => {
@@ -60,9 +50,7 @@ export default function (injectedStore) {
   async function getSongByList(id) {
     const currentList = await injectedStore.get(LISTS_TABLE, id);
     const songsIds = currentList.songs;
-    const songsList = await injectedStore.query(SONGS_TABLE, {
-      id: { $in: songsIds },
-    });
+    const songsList = await injectedStore.byIdsArray(SONGS_TABLE, songsIds);
     // Create a map to store the indices of songsIds
     const indexMap = {};
     songsIds.forEach((id, index) => {
@@ -75,6 +63,12 @@ export default function (injectedStore) {
 
     return songsList;
   }
-
-  return { upsertSong, listSongs, getSongById, getSongByList, getSongsByIds };
+  return {
+    upsertSong,
+    listSongs,
+    getSongById,
+    getSongByList,
+    getSongsByIds,
+    songsByUser,
+  };
 }
