@@ -5,3 +5,4 @@ config.js
 gha-creds-*.json
 /dist
 migration/
+app.yaml

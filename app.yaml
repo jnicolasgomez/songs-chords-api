@@ -1,3 +1,0 @@
-runtime: nodejs18
-automatic_scaling:
-  min_instances: 1
