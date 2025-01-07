@@ -6,9 +6,21 @@ import cors from "cors";
 import { initializeApp } from "firebase-admin/app";
 
 const port = process.env.PORT ?? 3001;
+const whitelist = process.env.CORS_WHITELIST
+  ? process.env.CORS_WHITELIST.split(",")
+  : [];
+
+console.log(whitelist);
 
 const corsOptions = {
-  origin: "*",
+  origin: function (origin, callback) {
+    console.log(origin);
+    if (whitelist.includes(origin) || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
 };
 
 initializeApp();
