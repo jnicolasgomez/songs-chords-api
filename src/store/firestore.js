@@ -9,7 +9,7 @@ let db;
  */
 export async function connect() {
   if (!db) {
-    const dbId = process.env.FIRESTORE_DATABASE_ID || "default";
+    const dbId = process.env.FIRESTORE_DATABASE_ID || "(default)";
     db = getFirestore(dbId);
     console.log("Connected to db Firestore using Firebase Admin SDK");
   }
