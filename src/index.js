@@ -10,11 +10,8 @@ const whitelist = process.env.CORS_WHITELIST
   ? process.env.CORS_WHITELIST.split(",")
   : [];
 
-console.log(whitelist);
-
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log(origin);
     if (whitelist.includes(origin) || !origin) {
       callback(null, true);
     } else {
