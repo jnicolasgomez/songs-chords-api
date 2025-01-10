@@ -1,15 +1,12 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkJwt = void 0;
-const auth_1 = require("firebase-admin/auth");
+import { getAuth } from "firebase-admin/auth";
 const checkJwt = (req, res, next) => {
     const userId = req.query.userId;
     if (userId) {
         try {
             const jwtByUser = req.headers.authorization || null;
-            const jwt = jwtByUser === null || jwtByUser === void 0 ? void 0 : jwtByUser.split(" ").pop();
+            const jwt = jwtByUser?.split(" ").pop();
             if (jwt) {
-                (0, auth_1.getAuth)()
+                getAuth()
                     .verifyIdToken(jwt)
                     .then(function () {
                     return next();
@@ -29,4 +26,4 @@ const checkJwt = (req, res, next) => {
         return next();
     }
 };
-exports.checkJwt = checkJwt;
+export { checkJwt };

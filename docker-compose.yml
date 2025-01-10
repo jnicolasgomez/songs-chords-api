@@ -4,12 +4,14 @@ services:
     image: mongo:latest
     container_name: mongodb
     ports:
-      - "27017:27017"
+      - "27017:27017" # MongoDB default port
     volumes:
-      - mongodb_data:/data/db
+      - mongodb_data:/data/db # Persistent storage for MongoDB data
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: songs
+      MONGO_INITDB_ROOT_USERNAME: root # Root username
+      MONGO_INITDB_ROOT_PASSWORD: songs # Root password
+    restart: always # Ensure the service restarts on failures
 
 volumes:
   mongodb_data:
+    driver: local

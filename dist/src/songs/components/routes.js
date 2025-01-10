@@ -1,63 +1,117 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const session_1 = require("../../middleware/session");
-const response_1 = require("../../network/response");
-const index_1 = __importDefault(require("./index"));
-const router = (0, express_1.Router)();
+// import { Router } from "express";
+// import { checkJwt } from "../../middleware/session";
+// import { success } from "../../network/response";
+// import controller from "./index";
+// const router = Router();
+// router.post("/songs", (req, res, next) => {
+//   controller
+//     .upsertSong(req.body)
+//     .then((item) => {
+//       success(req, res, item, 201);
+//     })
+//     .catch(next);
+// });
+// router.get("/songs", checkJwt, (req, res, next) => {
+//   const { ids, userId } = req.query;
+//   if (ids) {
+//     const idArray = ids.split(",").map((id) => id.trim());
+//     controller
+//       .getSongsByIds(idArray)
+//       .then((item) => {
+//         success(req, res, item, 200);
+//       })
+//       .catch(next);
+//   } else if (userId) {
+//     controller
+//       .listSongs(userId)
+//       .then((item) => {
+//         success(req, res, item, 200);
+//       })
+//       .catch(next);
+//   } else {
+//     controller
+//       .listSongs()
+//       .then((item) => {
+//         success(req, res, item, 200);
+//       })
+//       .catch(next);
+//   }
+// });
+// router.get("/songs/:id", (req, res, next) => {
+//   controller
+//     .getSongById(req.params.id)
+//     .then((item) => {
+//       success(req, res, item, 200);
+//     })
+//     .catch(next);
+// });
+// router.get("/songs/list/:id", (req, res, next) => {
+//   controller
+//     .getSongByList(req.params.id)
+//     .then((item) => {
+//       success(req, res, item, 200);
+//     })
+//     .catch(next);
+// });
+// export default router;
+import { Router } from "express";
+import { checkJwt } from "../../middleware/session";
+import { success } from "../../network/response";
+import controller from "./index";
+const router = Router();
 router.post("/songs", (req, res, next) => {
-    index_1.default
+    controller
         .upsertSong(req.body)
         .then((item) => {
-        (0, response_1.success)(req, res, item, 201);
+        success(req, res, item, 201);
     })
         .catch(next);
 });
-router.get("/songs", session_1.checkJwt, (req, res, next) => {
+router.get("/songs", checkJwt, (req, res, next) => {
     const { ids, userId } = req.query;
-    if (ids) {
+    // Handle ids query parameter
+    if (ids && typeof ids === 'string') {
         const idArray = ids.split(",").map((id) => id.trim());
-        index_1.default
+        controller
             .getSongsByIds(idArray)
             .then((item) => {
-            (0, response_1.success)(req, res, item, 200);
+            success(req, res, item, 200);
         })
             .catch(next);
     }
-    else if (userId) {
-        index_1.default
+    else if (userId && typeof userId === 'string') {
+        // Handle userId query parameter
+        controller
             .listSongs(userId)
             .then((item) => {
-            (0, response_1.success)(req, res, item, 200);
+            success(req, res, item, 200);
         })
             .catch(next);
     }
     else {
-        index_1.default
+        // Fallback: if no ids or userId, list all songs
+        controller
             .listSongs()
             .then((item) => {
-            (0, response_1.success)(req, res, item, 200);
+            success(req, res, item, 200);
         })
             .catch(next);
     }
 });
 router.get("/songs/:id", (req, res, next) => {
-    index_1.default
+    controller
         .getSongById(req.params.id)
         .then((item) => {
-        (0, response_1.success)(req, res, item, 200);
+        success(req, res, item, 200);
     })
         .catch(next);
 });
 router.get("/songs/list/:id", (req, res, next) => {
-    index_1.default
+    controller
         .getSongByList(req.params.id)
         .then((item) => {
-        (0, response_1.success)(req, res, item, 200);
+        success(req, res, item, 200);
     })
         .catch(next);
 });
-exports.default = router;
+export default router;

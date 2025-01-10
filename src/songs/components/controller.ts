@@ -24,7 +24,7 @@ interface Store {
 
 
 
-export default function (injectedStore?: Store) {
+export default function (injectedStore: Store = store) {
   if (!injectedStore) {
     injectedStore = store;
   }
@@ -80,7 +80,7 @@ export default function (injectedStore?: Store) {
 
   async function getSongByList(id) {
     const currentList = await injectedStore.get(LISTS_TABLE, id);
-    const songsIds = currentList.songs;
+    const songsIds = currentList?.songs;
     const songsList = await injectedStore.query(SONGS_TABLE, {
       id: { $in: songsIds },
     });
