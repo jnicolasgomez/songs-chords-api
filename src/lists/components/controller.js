@@ -1,4 +1,66 @@
-import * as store from "../../store/dummy.js";
+// import * as store from "../../store/dummy.js";
+// const LISTS_TABLE = "lists";
+
+// export default function (injectedStore) {
+//   if (!injectedStore) {
+//     injectedStore = store;
+//   }
+
+//   async function getLists() {
+//     let lists = (await injectedStore.list(LISTS_TABLE)).reverse();
+//     return lists;
+//   }
+
+//   async function listsByUser(userId) {
+//     let lists = await injectedStore.query(LISTS_TABLE, {
+//       $or: [
+//         { user_uid: userId }, // Lists that belong to the user
+//         {
+//           $or: [
+//             // Public lists based on private field criteria
+//             { private: false },
+//             { private: { $exists: false } }, // Lists where private field does not exist
+//             { private: null }, // Lists where private field is explicitly set to null
+//           ],
+//         }, // Public lists
+//       ],
+//     });
+//     return lists;
+//   }
+
+//   async function listById(id) {
+//     let lists = await injectedStore.query(LISTS_TABLE, { id });
+//     return lists;
+//   }
+
+//   async function publicLists() {
+//     let lists = await injectedStore.query(LISTS_TABLE, {
+//       $or: [
+//         // Public lists based on private field criteria
+//         { private: false },
+//         { private: { $exists: false } }, // Lists where private field does not exist
+//         { private: null }, // Lists where private field is explicitly set to null
+//       ],
+//     });
+//     return lists.reverse();
+//   }
+
+//   async function upsertList(body) {
+//     return injectedStore.upsert(LISTS_TABLE, body);
+//   }
+
+//   return {
+//     getLists,
+//     upsertList,
+//     listsByUser,
+//     publicLists,
+//     listById,
+//   };
+// }
+
+
+
+import * as store from "../../store/sirestore.js";
 const LISTS_TABLE = "lists";
 
 export default function (injectedStore) {
@@ -12,36 +74,22 @@ export default function (injectedStore) {
   }
 
   async function listsByUser(userId) {
-    let lists = await injectedStore.query(LISTS_TABLE, {
-      $or: [
-        { user_uid: userId }, // Lists that belong to the user
-        {
-          $or: [
-            // Public lists based on private field criteria
-            { private: false },
-            { private: { $exists: false } }, // Lists where private field does not exist
-            { private: null }, // Lists where private field is explicitly set to null
-          ],
-        }, // Public lists
-      ],
-    });
+    let lists = await injectedStore.query(LISTS_TABLE, [
+      ["user_uid", "==", userId], // Lists that belong to the user
+      ["private", "in", [false, null]] // Public lists based on private field criteria
+    ]);
     return lists;
   }
 
   async function listById(id) {
-    let lists = await injectedStore.query(LISTS_TABLE, { id });
-    return lists;
+    let list = await injectedStore.get(LISTS_TABLE, id);
+    return list ? [list] : [];
   }
 
   async function publicLists() {
-    let lists = await injectedStore.query(LISTS_TABLE, {
-      $or: [
-        // Public lists based on private field criteria
-        { private: false },
-        { private: { $exists: false } }, // Lists where private field does not exist
-        { private: null }, // Lists where private field is explicitly set to null
-      ],
-    });
+    let lists = await injectedStore.query(LISTS_TABLE, [
+      ["private", "in", [false, null]] // Public lists based on private field criteria
+    ]);
     return lists.reverse();
   }
 
