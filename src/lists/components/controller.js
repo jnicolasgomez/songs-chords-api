@@ -60,7 +60,7 @@
 
 
 
-import * as store from "../../store/sirestore.js";
+import * as store from "../../store/dummy.js";
 const LISTS_TABLE = "lists";
 
 export default function (injectedStore) {
