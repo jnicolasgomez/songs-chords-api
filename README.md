@@ -68,6 +68,18 @@ Make sure you have the following installed:
 | 500  | Internal Server Error        |
 
 ---
+## Lint
+
+### Running Linter
+1. Run the linter:
+    ```bash
+    yarn lint
+    ```
+2. Automatically fix lint warnings
+    ```bash
+    yarn lint --fix
+    ```
+---
 
 ## Testing
 
