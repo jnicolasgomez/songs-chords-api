@@ -125,7 +125,7 @@ async function queryLargeDocumentIdArray(collection, ids) {
  */
 export async function upsert(collection, data) {
   await connect();
-  if (!data.id) {
+  if (!data.id || data.id === "") {
     const docRef = await db.collection(collection).add(data);
     console.log(`Document ${docRef.id} created in ${collection}`);
     return { id: docRef.id };
