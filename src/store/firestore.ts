@@ -169,8 +169,8 @@ export async function query(collection: string, conditions: QueryCondition[]): P
  * @param {QueryCondition[]} conditions - An array of conditions. Each condition is an array: [field, operator, value].
  * @returns {Query} - A Firestore query object.
  */
-function buildQuery(db: Firestore, collection: string, conditions: QueryCondition[]): CollectionReference<DocumentData, DocumentData> {
-  let queryRef = db.collection(collection);
+function buildQuery(db: Firestore, collection: string, conditions: QueryCondition[]): Query<DocumentData, DocumentData> {
+  let queryRef : Query<DocumentData, DocumentData> = db.collection(collection);
 
   // Apply each condition to the query
   for (const [field, operator, value] of conditions) {
