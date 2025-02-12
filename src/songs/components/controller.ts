@@ -1,13 +1,34 @@
-import * as store from "../../store/dummy.js";
+import * as store from "../../store/firestore.ts";
 
 const SONGS_TABLE = "songs";
 const LISTS_TABLE = "lists";
+let injectedStore: Store | undefined;
 
-export default function (injectedStore) {
+interface Song {
+  id: string;
+  [key: string]: any;
+}
+
+interface List {
+  id: string;
+  songs: string[];
+  [key: string]: any;
+}
+
+interface Store {
+  byUserId: (table: string, userId: string) => Promise<Song[]>;
+  listPublic: (table: string) => Promise<Song[]>;
+  get: (table: string, id: string) => Promise<Song | List>;
+  byIdsArray: (table: string, ids: string[]) => Promise<Song[]>;
+  upsert: (table: string, data: any) => Promise<Song>;
+}
+
+export default function (injectedStore?: Store) {
   if (!injectedStore) {
     injectedStore = store;
   }
-  async function listSongs(userId) {
+
+  async function listSongs(userId?: string): Promise<Song[]> {
     if (userId) {
       return (await songsByUser(userId)).concat(await publicSongs());
     } else {
@@ -15,24 +36,24 @@ export default function (injectedStore) {
     }
   }
 
-  async function songsByUser(userId) {
+  async function songsByUser(userId: string): Promise<Song[]> {
     let songs = await injectedStore.byUserId(SONGS_TABLE, userId);
     return songs;
   }
 
-  async function publicSongs() {
+  async function publicSongs(): Promise<Song[]> {
     let songs = await injectedStore.listPublic(SONGS_TABLE);
     return songs;
   }
 
-  function getSongById(id) {
-    return injectedStore.get(SONGS_TABLE, id);
+  function getSongById(id: string): Promise<Song> {
+    return injectedStore.get(SONGS_TABLE, id) as Promise<Song>;
   }
 
-  async function getSongsByIds(idArray) {
+  async function getSongsByIds(idArray: string[]): Promise<Song[]> {
     const songsList = await injectedStore.byIdsArray(SONGS_TABLE, idArray);
     // Create a map to store the indices of songsIds
-    const indexMap = {};
+    const indexMap: { [key: string]: number } = {};
     idArray.forEach((id, index) => {
       indexMap[id] = index;
     });
@@ -43,16 +64,16 @@ export default function (injectedStore) {
     return songsList;
   }
 
-  async function upsertSong(body) {
+  async function upsertSong(body: any): Promise<Song> {
     return injectedStore.upsert(SONGS_TABLE, body);
   }
 
-  async function getSongByList(id) {
-    const currentList = await injectedStore.get(LISTS_TABLE, id);
+  async function getSongByList(id: string): Promise<Song[]> {
+    const currentList = await injectedStore.get(LISTS_TABLE, id) as List;
     const songsIds = currentList.songs;
     const songsList = await injectedStore.byIdsArray(SONGS_TABLE, songsIds);
     // Create a map to store the indices of songsIds
-    const indexMap = {};
+    const indexMap: { [key: string]: number } = {};
     songsIds.forEach((id, index) => {
       indexMap[id] = index;
     });
@@ -63,6 +84,7 @@ export default function (injectedStore) {
 
     return songsList;
   }
+
   return {
     upsertSong,
     listSongs,

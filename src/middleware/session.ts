@@ -1,11 +1,12 @@
 import { getAuth } from "firebase-admin/auth";
+import type {Request, Response, NextFunction } from "express";
 
-const handleHttp = (res, message, error, statusCode) => {
+const handleHttp = (res: Response, message: string, error: unknown, statusCode: number): void => {
   res.status(statusCode).json({ message, error });
 };
 
-const checkJwt = (req, res, next) => {
-  const userId = req.query.userId || req.params.id;
+const checkJwt = (req: Request, res: Response, next: NextFunction): void => {
+  const userId = req.query.userId as string || req.params.id;
   if (userId) {
     try {
       const jwtByUser = req.headers.authorization || null;

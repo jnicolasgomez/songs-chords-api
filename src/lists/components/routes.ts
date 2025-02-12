@@ -1,11 +1,18 @@
 import { Router } from "express";
-import { checkJwt } from "../../middleware/session.js";
-import { success } from "../../network/response.js";
-import controller from "./index.js";
+import type { Request, Response, NextFunction } from "express";
+import { checkJwt } from "../../middleware/session.ts";
+import { success } from "../../network/response.ts";
+import controller from "./index.ts";
 
 const router = Router();
 
-router.post("/lists", checkJwt, (req, res, next) => {
+type ListRequest = Request & {
+  query: {
+    userId?: string;
+  };
+}
+
+router.post("/lists", checkJwt, (req: Request, res: Response, next: NextFunction) => {
   controller
     .upsertList(req.body)
     .then((item) => {
@@ -14,8 +21,8 @@ router.post("/lists", checkJwt, (req, res, next) => {
     .catch(next);
 });
 
-router.get("/lists", (req, res, next) => {
-  const userId = req.query.userId;
+router.get("/lists", (req: ListRequest, res: Response, next: NextFunction) => {
+  const { userId } = req.query;
   if (userId) {
     controller
       .listsByUser(userId)
@@ -33,7 +40,7 @@ router.get("/lists", (req, res, next) => {
   }
 });
 
-router.get("/lists/:id", (req, res, next) => {
+router.get("/lists/:id", (req: Request, res: Response, next: NextFunction) => {
   controller
     .listById(req.params.id)
     .then((item) => {
