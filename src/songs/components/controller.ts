@@ -2,7 +2,6 @@ import * as store from "../../store/firestore.ts";
 
 const SONGS_TABLE = "songs";
 const LISTS_TABLE = "lists";
-let injectedStore: Store | undefined;
 
 interface Song {
   id: string;
@@ -22,6 +21,8 @@ interface Store {
   byIdsArray: (table: string, ids: string[]) => Promise<Song[]>;
   upsert: (table: string, data: any) => Promise<Song>;
 }
+
+let injectedStore: Store | undefined;
 
 export default function (injectedStore?: Store) {
   if (!injectedStore) {
