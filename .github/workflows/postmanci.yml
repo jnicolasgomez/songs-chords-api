@@ -1,0 +1,20 @@
+name: Automated API tests using Postman CLI
+
+on: push
+
+jobs:
+  automated-api-tests:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Postman CLI
+        run: |
+          curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+      - name: Login to Postman CLI
+        env:
+            POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+        run: postman login --with-api-key "$POSTMAN_API_KEY"
+      - name: Run API tests
+        run: |
+          postman collection run "${{ github.workspace }}/postman/collections/chords-api.json" -e "7478026-2e3fc196-3465-4d6e-89e5-8483ce23cdb5" --integration-id "174284-${{ github.run_id }}"

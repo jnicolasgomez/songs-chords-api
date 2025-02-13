@@ -1,0 +1,497 @@
+{
+	"info": {
+		"_postman_id": "d6c39a4b-2376-4d6b-a49e-f3571e86d047",
+		"name": "chords-api",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_uid": "7478026-d6c39a4b-2376-4d6b-a49e-f3571e86d047"
+	},
+	"item": [
+		{
+			"name": "songs",
+			"item": [
+				{
+					"name": "Get public Songs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "d0dfddb7-69cf-4ea9-8c07-78e1a64d5472",
+								"exec": [
+									"",
+									"// Test to check the response status code",
+									"pm.test(\"Response status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"// Test to check if the response body is a list",
+									"pm.test(\"Response body is a list\", function () {",
+									"    pm.expect(pm.response.json().body).to.be.an('array');",
+									"});",
+									"",
+									"// Test to check the length of the response body is equal to 100",
+									"pm.test(\"Length of the response body is equal to 100\", function () {",
+									"    pm.expect(pm.response.json().body.length).to.equal(100);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "f2855913-a9f3-4459-bd6e-2fb330556cba",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/api/songs",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"api",
+								"songs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Post existing song",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "521bfe0a-3eb6-4fcb-824a-514b4f2f0ca3",
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Response body should have the correct 'id'\", function () {",
+									"    pm.expect(pm.response.json().body.id).to.eql(\"test\");",
+									"});",
+									"pm.test(\"Response body should have 'error' as false\", function () {",
+									"    pm.expect(pm.response.json().error).to.eql(false);",
+									"});",
+									"",
+									"pm.test(\"Response body should have 'status' as 201\", function () {",
+									"    pm.expect(pm.response.json().status).to.eql(201);",
+									"});",
+									"",
+									"pm.test(\"Response body should have 'body' as 1\", function () {",
+									"    pm.expect(pm.response.json().body).to.eql({id: \"test\"});",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "f811ef4b-a076-4748-aef5-4f7becd34327",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"test\",\n    \"title\": \"Lago en el cielo\",\n    \"chords-text\": \"abcdefg\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/api/songs/",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"api",
+								"songs",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Post new song",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "28f9528a-e9e1-4189-a1e1-bd0635226dd5",
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response body should have 'error' as false\", function () {",
+									"    pm.expect(pm.response.json().error).to.eql(false);",
+									"});",
+									"",
+									"pm.test(\"Response body should have 'status' as 201\", function () {",
+									"    pm.expect(pm.response.json().status).to.eql(201);",
+									"});",
+									"",
+									"pm.test(\"Save body id in a variable\", function () {",
+									"    pm.collectionVariables.set(\"bodyId\", pm.response.json().body.id);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "39c6d5a5-ca9c-4266-a6a5-3baf6b7a6dad",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"New private from Test\",\n    \"chords-text\": \"abcdef\",\n    \"public\": true,\n    \"user_id\": \"w9XmKWv7h3XPL4nFW73GdvIDLUl2\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/api/songs/",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"api",
+								"songs",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get By Id",
+					"id": "147fca3f-8073-41f2-94b6-5eb5006d1775",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/api/songs/{{bodyId}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"api",
+								"songs",
+								"{{bodyId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get unauthorized user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "50f73a26-2a88-4a3f-9319-5b6e6e14a538",
+								"exec": [
+									"pm.test(\"Status code is 403\", function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"",
+									"pm.test(\"Response body has message 'INVALID_SESSION'\", function () {",
+									"    pm.expect(pm.response.json().message).to.equal(\"INVALID_SESSION\");",
+									"});",
+									"",
+									"pm.test(\"Response body has error 'No jwt'\", function () {",
+									"    pm.expect(pm.response.json().error).to.equal(\"No jwt\");",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "05fb0f50-606c-49a7-88e5-1d7fc6935e34",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/api/songs/?userId=\"myTestUser\"",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"api",
+								"songs",
+								""
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "\"myTestUser\""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get song by user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "82c8f422-3b01-492b-b12b-8871349f0a6c",
+								"exec": [
+									"",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "ad5584dd-d11b-4b2d-a377-2bac1cdb72ef",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjQwZDg4ZGQ1NWQxYjAwZDg0ZWU4MWQwYjk2M2RlNGNkOGM0ZmFjM2UiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiSnVhbiBHb21leiIsImlzcyI6Imh0dHBzOi8vc2VjdXJldG9rZW4uZ29vZ2xlLmNvbS92ZXJ0aWdveCIsImF1ZCI6InZlcnRpZ294IiwiYXV0aF90aW1lIjoxNzM0MjI4NjQwLCJ1c2VyX2lkIjoidzlYbUtXdjdoM1hQTDRuRlc3M0dkdklETFVsMiIsInN1YiI6Inc5WG1LV3Y3aDNYUEw0bkZXNzNHZHZJRExVbDIiLCJpYXQiOjE3MzYwNTAzMTksImV4cCI6MTczNjA1MzkxOSwiZW1haWwiOiJqbmdtXzIwQGhvdG1haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7ImVtYWlsIjpbImpuZ21fMjBAaG90bWFpbC5jb20iXX0sInNpZ25faW5fcHJvdmlkZXIiOiJwYXNzd29yZCJ9fQ.BdOudVXpg7JbVmvOHnA6AuvgAlAonPZSS3cpulr6Rf2C2SVvpBaH__FLjmPxMtJWpblLJicVmWGGHctQYp1dJ9S1GOSpgPot2WIQK1u_re0OBuLVaBDRvFh12jn7WtiyCpQi4FbrrOzd4u3pl0G0fR8cg_lBUFE3Z1N7dVNjXLwf1muQCfhmHWVT2lYgvatHGkwntTKuNz-xJjHiDV28JHuByyDZdWio32D1s2fn5e16SRyAp8odbecPRGX1u69x8pkbr3kw_tr5eOjYrFEmXq21q_0RnvLlsYWKlCtEgzTSat59LzVLZxSmEK9ju3ohhgGpA8Hw6ur_QKKNE1uZ9Q",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/api/songs/?userId=\"myTestUser\"",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"api",
+								"songs",
+								""
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "\"myTestUser\""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get song by user Copy",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "f1b7ee8e-e989-4339-9d03-928f82da5cbe",
+								"exec": [
+									"",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "a8b5704f-421c-4012-870a-896a381244ae",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/api/songs/user/w9XmKWv7h3XPL4nFW73GdvIDLUl2",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"api",
+								"songs",
+								"user",
+								"w9XmKWv7h3XPL4nFW73GdvIDLUl2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get by Ids",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4c2ced26-0cdd-4e0f-b9c6-031f334c30e5",
+								"exec": [
+									"pm.test(\"Check that the ids in the response match with the ids in the URL query\", function () {",
+									"    const idsArray = pm.request.url.query.get('ids').split(',');",
+									"    const responseBody = pm.response.json();",
+									"",
+									"    // Check if the number of items in the response matches the number of ids in the URL query",
+									"    pm.expect(responseBody.body).to.have.length(idsArray.length);",
+									"",
+									"    // Loop through each item in the response and compare the id with the ids in the URL query",
+									"    responseBody.body.forEach(function(item, index) {",
+									"        pm.expect(item.id).to.equal(idsArray[index]);",
+									"    });",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "bda412c9-2f6e-46f8-9c0a-a2587e883f57",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{host}}/api/songs/?ids={{idsArray}}",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"api",
+								"songs",
+								""
+							],
+							"query": [
+								{
+									"key": "ids",
+									"value": "{{idsArray}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "facd1b08-abfd-4ec5-8df4-d942aff31a01"
+		},
+		{
+			"name": "lists",
+			"item": [
+				{
+					"name": "Get Lists",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "322dc8b3-f77e-48a5-b611-f798bc57caad",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"id": "eaef80fe-c9b0-40b4-8958-74a589126cfa",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{host}}/api/lists",
+							"host": [
+								"{{host}}"
+							],
+							"path": [
+								"api",
+								"lists"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "adb683c2-b755-4c0e-9834-52379ac7fdd5"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "c20ce213-19eb-44da-8e6f-344019ea690e",
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "2752580d-6cee-4e5f-a23d-e69e2260817a",
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"id": "2f0ace81-3750-481d-832f-15d2aef61879",
+			"key": "bodyId",
+			"value": ""
+		},
+		{
+			"id": "107bcce7-4b9a-4f84-8bf7-20cd57620be4",
+			"key": "idsArray",
+			"value": "9GxFXaTsKkMUiSIlEH5w,FVIzT7vd3ZWCcNMErN1x,H1jJRYlew28Oor4VnfmM",
+			"type": "string"
+		}
+	]
+}
