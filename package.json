@@ -2,10 +2,10 @@
   "name": "chords-api",
   "version": "2.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
-    "start": "node ./src/index.js",
-    "dev": "node --watch --env-file=.env ./src/index.js",
+    "start": "node ./src/index.ts",
+    "dev": "node --watch --env-file=.env ./src/index.ts",
     "test": "jest",
     "lint": "eslint ."
   },
@@ -13,6 +13,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/firestore": "^7.11.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/morgan": "^1.9.9",
     "cors": "^2.8.5",
     "express": ">=5.0.1",
     "firebase-admin": "^12.7.0",

@@ -1,11 +1,20 @@
 import { Router } from "express";
-import { checkJwt } from "../../middleware/session.js";
-import { success } from "../../network/response.js";
-import controller from "./index.js";
+import type { Request, Response, NextFunction } from "express";
+import { checkJwt } from "../../middleware/session.ts";
+import { success } from "../../network/response.ts";
+import controller from "./index.ts";
+
 
 const router = Router();
 
-router.post("/songs", (req, res, next) => {
+type SongRequest = Request & {
+  query: {
+    ids?: string;
+    userId?: string;
+  };
+}
+
+router.post("/songs", (req: Request, res: Response, next: NextFunction) => {
   controller
     .upsertSong(req.body)
     .then((item) => {
@@ -14,7 +23,7 @@ router.post("/songs", (req, res, next) => {
     .catch(next);
 });
 
-router.get("/songs", checkJwt, (req, res, next) => {
+router.get("/songs", checkJwt, (req: SongRequest, res: Response, next: NextFunction) => {
   const { ids, userId } = req.query;
   if (ids) {
     const idArray = ids.split(",").map((id) => id.trim());
@@ -41,7 +50,7 @@ router.get("/songs", checkJwt, (req, res, next) => {
   }
 });
 
-router.get("/songs/user/:id", checkJwt, (req, res, next) => {
+router.get("/songs/user/:id", checkJwt, (req: Request, res: Response, next: NextFunction) => {
   controller
     .songsByUser(req.params.id)
     .then((item) => {
@@ -50,7 +59,7 @@ router.get("/songs/user/:id", checkJwt, (req, res, next) => {
     .catch(next);
 });
 
-router.get("/songs/:id", (req, res, next) => {
+router.get("/songs/:id", (req: Request, res: Response, next: NextFunction) => {
   controller
     .getSongById(req.params.id)
     .then((item) => {
@@ -59,7 +68,7 @@ router.get("/songs/:id", (req, res, next) => {
     .catch(next);
 });
 
-router.get("/songs/list/:id", (req, res, next) => {
+router.get("/songs/list/:id", (req: Request, res: Response, next: NextFunction) => {
   controller
     .getSongByList(req.params.id)
     .then((item) => {
