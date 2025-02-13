@@ -1,7 +1,7 @@
 # Backend REST API Documentation
 
 ## Overview
-This repository contains the codebase for a backend REST API designed to handle Songs and Lists of songs for proyecto vertigo. Built using Node.js with Express and MongoDB, this API is designed for scalability, reliability, and performance.
+This repository contains the codebase for a backend REST API designed to handle Songs and Lists of songs. Built using Node.js with Express and MongoDB, this API is designed for scalability, reliability, and performance.
 
 ---
 
@@ -67,6 +67,18 @@ Make sure you have the following installed:
 | 404  | Not Found                    |
 | 500  | Internal Server Error        |
 
+---
+## Lint
+
+### Running Linter
+1. Run the linter:
+    ```bash
+    yarn lint
+    ```
+2. Automatically fix lint warnings
+    ```bash
+    yarn lint --fix
+    ```
 ---
 
 ## Testing
