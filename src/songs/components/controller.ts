@@ -1,37 +1,23 @@
 import * as store from "../../store/firestore.ts";
+import type { Song, Store } from "../types/types.ts";
+
 
 const SONGS_TABLE = "songs";
 const LISTS_TABLE = "lists";
 
-interface Song {
-  id: string;
-  [key: string]: any;
-}
 
-interface List {
-  id: string;
-  songs: string[];
-  [key: string]: any;
-}
 
-interface Store {
-  byUserId: (table: string, userId: string) => Promise<Song[]>;
-  listPublic: (table: string) => Promise<Song[]>;
-  get: (table: string, id: string) => Promise<Song | List>;
-  byIdsArray: (table: string, ids: string[]) => Promise<Song[]>;
-  upsert: (table: string, data: any) => Promise<Song>;
-}
 
-let injectedStore: Store | undefined;
+export default function (selectedStore?: Store) {
 
-export default function (injectedStore?: Store) {
-  if (!injectedStore) {
-    injectedStore = store;
-  }
+  let injectedStore: Store = store;
+  // If no store is injected, use the default store
+  injectedStore = selectedStore || store;
 
   async function listSongs(userId?: string): Promise<Song[]> {
     if (userId) {
-      return (await songsByUser(userId)).concat(await publicSongs());
+      const songs = (await songsByUser(userId)).concat(await publicSongs());
+      return songs;
     } else {
       return publicSongs();
     }
@@ -65,13 +51,13 @@ export default function (injectedStore?: Store) {
     return songsList;
   }
 
-  async function upsertSong(body: any): Promise<Song> {
+  async function upsertSong(body: any): Promise<{id: string}> {
     return injectedStore.upsert(SONGS_TABLE, body);
   }
 
   async function getSongByList(id: string): Promise<Song[]> {
-    const currentList = await injectedStore.get(LISTS_TABLE, id) as List;
-    const songsIds = currentList.songs;
+    const currentList = await injectedStore.get(LISTS_TABLE, id);
+    const songsIds = currentList?.songs;
     const songsList = await injectedStore.byIdsArray(SONGS_TABLE, songsIds);
     // Create a map to store the indices of songsIds
     const indexMap: { [key: string]: number } = {};

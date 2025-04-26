@@ -2,6 +2,7 @@
 import { getFirestore, Query, WriteBatch, CollectionReference } from "firebase-admin/firestore";
 import type { Firestore, DocumentData, WhereFilterOp } from '@google-cloud/firestore';
 import { chunkArray } from "../utils/array.js";
+import type { Song } from "../songs/types/types.js";
 
 let db: Firestore | null = null;
 
@@ -27,11 +28,11 @@ export async function disconnect(): Promise<void> {
 /**
  * Lists all documents in a collection.
  * @param {string} collection - The collection name.
- * @returns {Promise<DocumentData[]>} - A list of documents.
+ * @returns {Promise<Song[]>} - A list of documents.
  */
-export async function list(collection: string): Promise<DocumentData[]> {
+export async function list(collection: string): Promise<Song[]> {
   await connect();
-  let response: DocumentData[] = [];
+  let response: Song[] = [];
   try {
     const snapshot = await db!.collection(collection).get();
     response = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -46,9 +47,9 @@ export async function list(collection: string): Promise<DocumentData[]> {
  * @param {string} collection - The collection name.
  * @returns {Promise<DocumentData[]>} - A list of documents.
  */
-export async function listPublic(collection: string): Promise<DocumentData[]> {
+export async function listPublic(collection: string): Promise<Song[]> {
   await connect();
-  let response: DocumentData[] = [];
+  let response: Song[] = [];
   try {
     response = await query(collection, [
       ["public", "in", ["true", true, null]],
@@ -63,9 +64,9 @@ export async function listPublic(collection: string): Promise<DocumentData[]> {
  * Gets a single document by ID.
  * @param {string} collection - The collection name.
  * @param {string} id - The document ID.
- * @returns {Promise<DocumentData|null>} - The document data or null if not found.
+ * @returns {Promise<Song|null>} - The document data or null if not found.
  */
-export async function get(collection: string, id: string): Promise<DocumentData | null> {
+export async function get(collection: string, id: string): Promise<Song | null> {
   await connect();
   const doc = await db!.collection(collection).doc(id).get();
   return doc.exists ? { id: doc.id, ...doc.data() } : null;
@@ -75,9 +76,9 @@ export async function get(collection: string, id: string): Promise<DocumentData 
  * Gets documents by UserId.
  * @param {string} collection - The collection name.
  * @param {string} userId - The user ID.
- * @returns {Promise<DocumentData[]>} - The document data array.
+ * @returns {Promise<Song[]>} - The document data array.
  */
-export async function byUserId(collection: string, userId: string): Promise<DocumentData[]> {
+export async function byUserId(collection: string, userId: string): Promise<Song[]> {
   await connect();
   let response: DocumentData[] = [];
   try {
@@ -92,11 +93,11 @@ export async function byUserId(collection: string, userId: string): Promise<Docu
  * Gets documents by array of IDs.
  * @param {string} collection - The collection name.
  * @param {string[]} idsArray - Array of document IDs.
- * @returns {Promise<DocumentData[]>} - The document data array.
+ * @returns {Promise<Song[]>} - The document data array.
  */
-export async function byIdsArray(collection: string, idsArray: string[]): Promise<DocumentData[]> {
+export async function byIdsArray(collection: string, idsArray: string[]): Promise<Song[]> {
   await connect();
-  let response: DocumentData[] = [];
+  let response: Song[] = [];
   try {
     response = await queryLargeDocumentIdArray(collection, idsArray);
   } catch (err) {
@@ -105,9 +106,9 @@ export async function byIdsArray(collection: string, idsArray: string[]): Promis
   return response;
 }
 
-async function queryLargeDocumentIdArray(collection: string, ids: string[]): Promise<DocumentData[]> {
+async function queryLargeDocumentIdArray(collection: string, ids: string[]): Promise<Song[]> {
   const idChunks = chunkArray(ids, 10); // Split into chunks of 10
-  const results: DocumentData[] = [];
+  const results: Song[] = [];
 
   for (const chunk of idChunks) {
     const docs = await query(collection, [["__name__", "in", chunk]]);
@@ -120,10 +121,10 @@ async function queryLargeDocumentIdArray(collection: string, ids: string[]): Pro
 /**
  * Creates or updates a document.
  * @param {string} collection - The collection name.
- * @param {DocumentData} data - The document data.
+ * @param {Song} data - The document data.
  * @returns {Promise<{id: string}>}
  */
-export async function upsert(collection: string, data: DocumentData): Promise<{id: string}> {
+export async function upsert(collection: string, data: Song): Promise<{id: string}> {
   await connect();
   if (!data.id) {
     const docRef = await db!.collection(collection).add(data);
@@ -153,9 +154,9 @@ type QueryCondition = [string, string, any];
  * Queries documents in a collection.
  * @param {string} collection - The collection name.
  * @param {QueryCondition[]} conditions - An array of query conditions. Each condition is an array: [field, operator, value].
- * @returns {Promise<DocumentData[]>} - A list of matching documents.
+ * @returns {Promise<Song[]>} - A list of matching documents.
  */
-export async function query(collection: string, conditions: QueryCondition[]): Promise<DocumentData[]> {
+export async function query(collection: string, conditions: QueryCondition[]): Promise<Song[]> {
   if (!db) throw new Error("Not connected to Firestore");
   const query = buildQuery(db, collection, conditions);
   const snapshot = await query.get();
