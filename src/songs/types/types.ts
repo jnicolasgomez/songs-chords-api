@@ -5,7 +5,7 @@ export interface Song {
     title: string;
     "chords-text": string;
     details: SongDetails;
-    band: string;
+    tags: string[];
     spotifyUrl?: string;
     youtubeUrl?: string;
     [key: string]: any;
