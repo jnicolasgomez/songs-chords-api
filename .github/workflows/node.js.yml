@@ -29,5 +29,29 @@ jobs:
       - run: yarn install --frozen-lockfile
       - run: yarn test
       - run: yarn lint
+      - name: Start API in the background
+        run: yarn start
+      - name: Wait for API to be ready
+        run: sleep 3  # Adjust based on your API startup time
+
+      - name: Save API running state
+        run: echo "API started successfully"
     outputs:
       build_status: ${{ job.status }}
+
+  automated-api-tests:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Postman CLI
+        run: |
+          curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+      - name: Login to Postman CLI
+        env:
+            POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+        run: postman login --with-api-key "$POSTMAN_API_KEY"
+      - name: Run API tests
+        run: |
+          postman collection run "${{ github.workspace }}/postman/collections/chords-api.json" -e "7478026-2e3fc196-3465-4d6e-89e5-8483ce23cdb5" --integration-id "174284-${{ github.run_id }}"
