@@ -35,7 +35,9 @@ export async function list(collection: string): Promise<Song[]> {
   let response: Song[] = [];
   try {
     const snapshot = await db!.collection(collection).get();
-    response = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    response = snapshot.docs.map((doc) => {
+      return { id: doc.id, ...doc.data() } as Song;
+    });
   } catch (err) {
     console.error(err);
   }
@@ -54,6 +56,7 @@ export async function listPublic(collection: string): Promise<Song[]> {
     response = await query(collection, [
       ["public", "in", ["true", true, null]],
     ]);
+
   } catch (err) {
     console.error(err);
   }
@@ -69,7 +72,7 @@ export async function listPublic(collection: string): Promise<Song[]> {
 export async function get(collection: string, id: string): Promise<Song | null> {
   await connect();
   const doc = await db!.collection(collection).doc(id).get();
-  return doc.exists ? { id: doc.id, ...doc.data() } : null;
+  return doc.exists ? { id: doc.id, ...doc.data() } as Song: null;
 }
 
 /**
@@ -86,7 +89,7 @@ export async function byUserId(collection: string, userId: string): Promise<Song
   } catch (err) {
     console.error(err);
   }
-  return response;
+  return response as Song[];
 }
 
 /**
@@ -127,11 +130,19 @@ async function queryLargeDocumentIdArray(collection: string, ids: string[]): Pro
 export async function upsert(collection: string, data: Song): Promise<{id: string}> {
   await connect();
   if (!data.id) {
-    const docRef = await db!.collection(collection).add(data);
+    const docRef = await db!.collection(collection).add({
+      ...data,
+      id: null // temporary null value that will be updated
+    });
+    // Update the document with its ID
+    await docRef.update({ id: docRef.id });
     console.log(`Document ${docRef.id} created in ${collection}`);
     return { id: docRef.id };
   }
-  await db!.collection(collection).doc(data.id).set(data, { merge: true });
+  await db!.collection(collection).doc(data.id).set({
+    ...data,
+    id: data.id
+  }, { merge: true });
   console.log(`Document ${data.id} upserted in ${collection}`);
   return { id: data.id };
 }
@@ -160,7 +171,9 @@ export async function query(collection: string, conditions: QueryCondition[]): P
   if (!db) throw new Error("Not connected to Firestore");
   const query = buildQuery(db, collection, conditions);
   const snapshot = await query.get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  return snapshot.docs.map((doc) => {
+    return { id: doc.id, ...doc.data() } as Song;
+  });
 }
 
 /**
