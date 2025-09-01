@@ -51,6 +51,21 @@ export default function (selectedStore?: Store) {
     return songsList;
   }
 
+  async function getSongTitlesByIds(idArray: string[]): Promise<{id: string, title: string}[]> {
+    // Only fetch title and id fields for better efficiency
+    const songsList = await injectedStore.byIdsArray(SONGS_TABLE, idArray, ['title', 'id']);
+    // Create a map to store the indices of songsIds
+    const indexMap: { [key: string]: number } = {};
+    idArray.forEach((id, index) => {
+      indexMap[id] = index;
+    });
+    // Sort songsList based on the order of songsIds
+    songsList.sort((a, b) => {
+      return indexMap[a.id] - indexMap[b.id];
+    });
+    return songsList as {id: string, title: string}[];
+  }
+
   async function upsertSong(body: any): Promise<{id: string}> {
     return injectedStore.upsert(SONGS_TABLE, body);
   }
@@ -72,12 +87,32 @@ export default function (selectedStore?: Store) {
     return songsList;
   }
 
+  async function getSongTitlesByList(id: string): Promise<{id: string, title: string}[]> {
+    const currentList = await injectedStore.get(LISTS_TABLE, id);
+    const songsIds = currentList?.songs;
+    // Only fetch title and id fields for better efficiency
+    const songsList = await injectedStore.byIdsArray(SONGS_TABLE, songsIds, ['title', 'id']);
+    // Create a map to store the indices of songsIds
+    const indexMap: { [key: string]: number } = {};
+    songsIds.forEach((id, index) => {
+      indexMap[id] = index;
+    });
+    // Sort songsList based on the order of songsIds
+    songsList.sort((a, b) => {
+      return indexMap[a.id] - indexMap[b.id];
+    });
+
+    return songsList as {id: string, title: string}[];
+  }
+
   return {
     upsertSong,
     listSongs,
     getSongById,
     getSongByList,
+    getSongTitlesByList,
     getSongsByIds,
+    getSongTitlesByIds,
     songsByUser,
   };
 }

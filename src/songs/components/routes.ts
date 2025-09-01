@@ -11,6 +11,7 @@ type SongRequest = Request & {
   query: {
     ids?: string;
     userId?: string;
+    lightweight?: string;
   };
 }
 
@@ -24,15 +25,25 @@ router.post("/songs", (req: Request, res: Response, next: NextFunction) => {
 });
 
 router.get("/songs", checkJwt, (req: SongRequest, res: Response, next: NextFunction) => {
-  const { ids, userId } = req.query;
+  const { ids, userId, lightweight } = req.query;
   if (ids) {
     const idArray = ids.split(",").map((id) => id.trim());
-    controller
-      .getSongsByIds(idArray)
-      .then((item) => {
-        success(req, res, item, 200);
-      })
-      .catch(next);
+    if (lightweight === 'true') {
+      // Use lightweight method for better efficiency
+      controller
+        .getSongTitlesByIds(idArray)
+        .then((item) => {
+          success(req, res, item, 200);
+        })
+        .catch(next);
+    } else {
+      controller
+        .getSongsByIds(idArray)
+        .then((item) => {
+          success(req, res, item, 200);
+        })
+        .catch(next);
+    }
   } else if (userId) {
     controller
       .listSongs(userId)
@@ -69,12 +80,48 @@ router.get("/songs/:id", (req: Request, res: Response, next: NextFunction) => {
 });
 
 router.get("/songs/list/:id", (req: Request, res: Response, next: NextFunction) => {
+  const { lightweight } = req.query;
+  if (lightweight === 'true') {
+    // Use lightweight method for better efficiency
+    controller
+      .getSongTitlesByList(req.params.id)
+      .then((item) => {
+        success(req, res, item, 200);
+      })
+      .catch(next);
+  } else {
+    controller
+      .getSongByList(req.params.id)
+      .then((item) => {
+        success(req, res, item, 200);
+      })
+      .catch(next);
+  }
+});
+
+// New lightweight routes for better efficiency
+router.get("/songs/list/:id/titles", (req: Request, res: Response, next: NextFunction) => {
   controller
-    .getSongByList(req.params.id)
+    .getSongTitlesByList(req.params.id)
     .then((item) => {
       success(req, res, item, 200);
     })
     .catch(next);
+});
+
+router.get("/songs/titles", checkJwt, (req: SongRequest, res: Response, next: NextFunction) => {
+  const { ids } = req.query;
+  if (ids) {
+    const idArray = ids.split(",").map((id) => id.trim());
+    controller
+      .getSongTitlesByIds(idArray)
+      .then((item) => {
+        success(req, res, item, 200);
+      })
+      .catch(next);
+  } else {
+    res.status(400).json({ error: "ids parameter is required for /songs/titles endpoint" });
+  }
 });
 
 export default router;

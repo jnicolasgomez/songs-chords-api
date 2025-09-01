@@ -67,12 +67,26 @@ export async function listPublic(collection: string): Promise<Song[]> {
  * Gets a single document by ID.
  * @param {string} collection - The collection name.
  * @param {string} id - The document ID.
+ * @param {string[]} fields - Optional array of field names to retrieve (for projection).
  * @returns {Promise<Song|null>} - The document data or null if not found.
  */
-export async function get(collection: string, id: string): Promise<Song | null> {
+export async function get(collection: string, id: string, fields?: string[]): Promise<Song | null> {
   await connect();
-  const doc = await db!.collection(collection).doc(id).get();
-  return doc.exists ? { id: doc.id, ...doc.data() } as Song: null;
+  
+  if (fields && fields.length > 0) {
+    // Use query with field projection for better efficiency
+    const query = db!.collection(collection).where('__name__', '==', id);
+    if (fields.length > 0) {
+      query.select(...fields);
+    }
+    const snapshot = await query.get();
+    const doc = snapshot.docs[0];
+    return doc ? { id: doc.id, ...doc.data() } as Song: null;
+  } else {
+    // Standard document retrieval
+    const doc = await db!.collection(collection).doc(id).get();
+    return doc.exists ? { id: doc.id, ...doc.data() } as Song: null;
+  }
 }
 
 /**
@@ -96,25 +110,26 @@ export async function byUserId(collection: string, userId: string): Promise<Song
  * Gets documents by array of IDs.
  * @param {string} collection - The collection name.
  * @param {string[]} idsArray - Array of document IDs.
+ * @param {string[]} fields - Optional array of field names to retrieve (for projection).
  * @returns {Promise<Song[]>} - The document data array.
  */
-export async function byIdsArray(collection: string, idsArray: string[]): Promise<Song[]> {
+export async function byIdsArray(collection: string, idsArray: string[], fields?: string[]): Promise<Song[]> {
   await connect();
   let response: Song[] = [];
   try {
-    response = await queryLargeDocumentIdArray(collection, idsArray);
+    response = await queryLargeDocumentIdArray(collection, idsArray, fields);
   } catch (err) {
     console.error(err);
   }
   return response;
 }
 
-async function queryLargeDocumentIdArray(collection: string, ids: string[]): Promise<Song[]> {
+async function queryLargeDocumentIdArray(collection: string, ids: string[], fields?: string[]): Promise<Song[]> {
   const idChunks = chunkArray(ids, 10); // Split into chunks of 10
   const results: Song[] = [];
 
   for (const chunk of idChunks) {
-    const docs = await query(collection, [["__name__", "in", chunk]]);
+    const docs = await query(collection, [["__name__", "in", chunk]], fields);
     results.push(...docs);
   }
 
@@ -165,11 +180,12 @@ type QueryCondition = [string, string, any];
  * Queries documents in a collection.
  * @param {string} collection - The collection name.
  * @param {QueryCondition[]} conditions - An array of query conditions. Each condition is an array: [field, operator, value].
+ * @param {string[]} fields - Optional array of field names to retrieve (for projection).
  * @returns {Promise<Song[]>} - A list of matching documents.
  */
-export async function query(collection: string, conditions: QueryCondition[]): Promise<Song[]> {
+export async function query(collection: string, conditions: QueryCondition[], fields?: string[]): Promise<Song[]> {
   if (!db) throw new Error("Not connected to Firestore");
-  const query = buildQuery(db, collection, conditions);
+  const query = buildQuery(db, collection, conditions, fields);
   const snapshot = await query.get();
   return snapshot.docs.map((doc) => {
     return { id: doc.id, ...doc.data() } as Song;
@@ -181,15 +197,22 @@ export async function query(collection: string, conditions: QueryCondition[]): P
  * @param {Firestore} db - Firestore database instance.
  * @param {string} collection - The collection name.
  * @param {QueryCondition[]} conditions - An array of conditions. Each condition is an array: [field, operator, value].
+ * @param {string[]} fields - Optional array of field names to retrieve (for projection).
  * @returns {Query} - A Firestore query object.
  */
-function buildQuery(db: Firestore, collection: string, conditions: QueryCondition[]): Query<DocumentData, DocumentData> {
+function buildQuery(db: Firestore, collection: string, conditions: QueryCondition[], fields?: string[]): Query<DocumentData, DocumentData> {
   let queryRef : Query<DocumentData, DocumentData> = db.collection(collection);
 
   // Apply each condition to the query
   for (const [field, operator, value] of conditions) {
     queryRef = queryRef.where(field, operator as WhereFilterOp, value);
   }
+  
+  // Apply field projection if specified
+  if (fields && fields.length > 0) {
+    queryRef = queryRef.select(...fields);
+  }
+  
   return queryRef;
 }
 
