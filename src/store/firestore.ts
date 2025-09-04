@@ -45,17 +45,18 @@ export async function list(collection: string): Promise<Song[]> {
 }
 
 /**
- * Lists all documents in a collection.
+ * Lists all public documents in a collection.
  * @param {string} collection - The collection name.
- * @returns {Promise<DocumentData[]>} - A list of documents.
+ * @param {string[]} fields - Optional array of field names to retrieve (for projection).
+ * @returns {Promise<Song[]>} - A list of public documents.
  */
-export async function listPublic(collection: string): Promise<Song[]> {
+export async function listPublic(collection: string, fields?: string[]): Promise<Song[]> {
   await connect();
   let response: Song[] = [];
   try {
     response = await query(collection, [
       ["public", "in", ["true", true, null]],
-    ]);
+    ], fields);
 
   } catch (err) {
     console.error(err);

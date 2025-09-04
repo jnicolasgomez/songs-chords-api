@@ -19,8 +19,9 @@ export interface SongDetails {
 
 export interface Store {
     byUserId: (table: string, userId: string) => Promise<Song[]>;
-    listPublic: (table: string) => Promise<Song[]>;
+    listPublic: (table: string, fields?: string[]) => Promise<Song[]>;
     get: (table: string, id: string, fields?: string[]) => Promise<Song | null>;
     byIdsArray: (table: string, ids: string[], fields?: string[]) => Promise<Song[]>;
     upsert: (table: string, data: any) => Promise<{id: string}>;
+    list: (table: string, fields?: string[]) => Promise<Song[]>;
 }

@@ -29,7 +29,7 @@ export default function (selectedStore?: Store) {
   }
 
   async function publicSongs(): Promise<Song[]> {
-    let songs = await injectedStore.listPublic(SONGS_TABLE);
+    let songs = await injectedStore.listPublic(SONGS_TABLE, ['title', 'id', 'tags']);
     return songs;
   }
 
