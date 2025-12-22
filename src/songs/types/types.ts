@@ -17,10 +17,12 @@ export interface SongDetails {
     voice?: string;
 }
 
-export interface Store {
-    byUserId: (table: string, userId: string) => Promise<Song[]>;
-    listPublic: (table: string) => Promise<Song[]>;
-    get: (table: string, id: string) => Promise<Song | null>;
-    byIdsArray: (table: string, ids: string[]) => Promise<Song[]>;
+export interface Store<T = any> {
+    byUserId: (table: string, userId: string) => Promise<T[]>;
+    listPublic: (table: string, fields?: string[]) => Promise<T[]>;
+    get: (table: string, id: string, fields?: string[]) => Promise<T | null>;
+    byIdsArray: (table: string, ids: string[], fields?: string[]) => Promise<T[]>;
     upsert: (table: string, data: any) => Promise<{id: string}>;
+    list: (table: string, fields?: string[]) => Promise<T[]>;
+    query: (table: string, query: any) => Promise<T[]>;
 }

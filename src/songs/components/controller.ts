@@ -8,9 +8,9 @@ const LISTS_TABLE = "lists";
 
 
 
-export default function (selectedStore?: Store) {
+export default function (selectedStore?: Store<Song>) {
 
-  let injectedStore: Store = store;
+  let injectedStore: Store<Song> = store;
   // If no store is injected, use the default store
   injectedStore = selectedStore || store;
 
