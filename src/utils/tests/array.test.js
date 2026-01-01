@@ -1,4 +1,4 @@
-import { chunkArray } from "../array.js";
+import { chunkArray } from "../array";
 
 describe("chunkArray", () => {
   test("splits an array into chunks of the specified size", () => {

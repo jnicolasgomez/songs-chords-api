@@ -1,8 +1,8 @@
 // firestore.ts
 import { getFirestore, Query, WriteBatch, CollectionReference } from "firebase-admin/firestore";
 import type { Firestore, DocumentData, WhereFilterOp } from '@google-cloud/firestore';
-import { chunkArray } from "../utils/array.js";
-import type { Song } from "../songs/types/types.js";
+import { chunkArray } from "../utils/array.ts";
+import type { Song } from "../songs/types/types";
 
 let db: Firestore | null = null;
 

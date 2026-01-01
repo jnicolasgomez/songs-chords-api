@@ -1,7 +1,7 @@
 import { MongoClient, ObjectId} from "mongodb";
 import type { Document, Db, Collection, Filter, WithId} from 'mongodb'
 import config from "../../config.js";
-import { chunkArray } from "../utils/array.js";
+import { chunkArray } from "../utils/array.ts";
 
 const uri: string = config.mongoDb.uri;
 const client: MongoClient = new MongoClient(uri);
