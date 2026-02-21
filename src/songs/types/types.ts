@@ -3,6 +3,7 @@ export interface Song {
     id: string;
     public: boolean;
     title: string;
+    artist?: string;
     "chords-text": string;
     details: SongDetails;
     tags: string[];
