@@ -1,5 +1,6 @@
 import * as store from "../../store/firestore.ts";
 import type { Song, Store } from "../types/types.ts";
+import artistsController from "../../artists/components/index.ts";
 
 
 const SONGS_TABLE = "songs";
@@ -56,7 +57,11 @@ export default function (selectedStore?: Store<Song>) {
   }
 
   async function upsertSong(body: any): Promise<{id: string}> {
-    return injectedStore.upsert(SONGS_TABLE, body);
+    const result = await injectedStore.upsert(SONGS_TABLE, body);
+    if (body.artist) {
+      await artistsController.upsertArtist(body.artist);
+    }
+    return result;
   }
 
   async function getSongByList(id: string): Promise<Song[]> {

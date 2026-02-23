@@ -168,6 +168,7 @@ type QueryCondition = [string, string, any];
  * @returns {Promise<Song[]>} - A list of matching documents.
  */
 export async function query(collection: string, conditions: QueryCondition[]): Promise<Song[]> {
+  await connect();
   if (!db) throw new Error("Not connected to Firestore");
   const query = buildQuery(db, collection, conditions);
   const snapshot = await query.get();
