@@ -50,7 +50,6 @@ export async function list(collection: string): Promise<Song[]> {
  * @returns {Promise<DocumentData[]>} - A list of documents.
  */
 export async function listPublic(collection: string): Promise<Song[]> {
-  await connect();
   let response: Song[] = [];
   try {
     response = await query(collection, [
@@ -82,7 +81,6 @@ export async function get(collection: string, id: string): Promise<Song | null> 
  * @returns {Promise<Song[]>} - The document data array.
  */
 export async function byUserId(collection: string, userId: string): Promise<Song[]> {
-  await connect();
   let response: DocumentData[] = [];
   try {
     response = await query(collection, [["user_id", "==", userId]]);
@@ -99,7 +97,6 @@ export async function byUserId(collection: string, userId: string): Promise<Song
  * @returns {Promise<Song[]>} - The document data array.
  */
 export async function byIdsArray(collection: string, idsArray: string[]): Promise<Song[]> {
-  await connect();
   let response: Song[] = [];
   try {
     response = await queryLargeDocumentIdArray(collection, idsArray);
