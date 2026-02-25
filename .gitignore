@@ -6,3 +6,4 @@ gha-creds-*.json
 /dist
 migration/
 app.yaml
+bandmate.code-workspace

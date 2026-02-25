@@ -59,6 +59,15 @@ router.get("/songs/user/:id", checkJwt, (req: Request, res: Response, next: Next
     .catch(next);
 });
 
+router.get("/songs/artist/:artist", (req: Request, res: Response, next: NextFunction) => {
+  controller
+    .songsByArtist(req.params.artist)
+    .then((item) => {
+      success(req, res, item, 200);
+    })
+    .catch(next);
+});
+
 router.get("/songs/:id", (req: Request, res: Response, next: NextFunction) => {
   controller
     .getSongById(req.params.id)

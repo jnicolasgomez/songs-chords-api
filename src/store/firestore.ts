@@ -50,7 +50,6 @@ export async function list(collection: string): Promise<Song[]> {
  * @returns {Promise<DocumentData[]>} - A list of documents.
  */
 export async function listPublic(collection: string): Promise<Song[]> {
-  await connect();
   let response: Song[] = [];
   try {
     response = await query(collection, [
@@ -82,7 +81,6 @@ export async function get(collection: string, id: string): Promise<Song | null> 
  * @returns {Promise<Song[]>} - The document data array.
  */
 export async function byUserId(collection: string, userId: string): Promise<Song[]> {
-  await connect();
   let response: DocumentData[] = [];
   try {
     response = await query(collection, [["user_id", "==", userId]]);
@@ -99,7 +97,6 @@ export async function byUserId(collection: string, userId: string): Promise<Song
  * @returns {Promise<Song[]>} - The document data array.
  */
 export async function byIdsArray(collection: string, idsArray: string[]): Promise<Song[]> {
-  await connect();
   let response: Song[] = [];
   try {
     response = await queryLargeDocumentIdArray(collection, idsArray);
@@ -168,6 +165,7 @@ type QueryCondition = [string, string, any];
  * @returns {Promise<Song[]>} - A list of matching documents.
  */
 export async function query(collection: string, conditions: QueryCondition[]): Promise<Song[]> {
+  await connect();
   if (!db) throw new Error("Not connected to Firestore");
   const query = buildQuery(db, collection, conditions);
   const snapshot = await query.get();
