@@ -64,6 +64,24 @@ export default function (selectedStore?: Store<Song>) {
     return result;
   }
 
+  const ALLOWED_PATCH_FIELDS = [
+    'title', 'artist', 'chords-text', 'tags', 'spotifyUrl', 'youtubeUrl', 'public', 'details'
+  ] as const;
+
+  async function patchSong(id: string, body: Partial<Song>): Promise<{id: string}> {
+    const filteredBody: Partial<Song> = {};
+    for (const field of ALLOWED_PATCH_FIELDS) {
+      if (field in body) {
+        (filteredBody as any)[field] = body[field as keyof Song];
+      }
+    }
+    const result = await injectedStore.upsert(SONGS_TABLE, { ...filteredBody, id } as Song);
+    if (body.artist) {
+      await artistsController.upsertArtist(body.artist);
+    }
+    return result;
+  }
+
   async function getSongByList(id: string): Promise<Song[]> {
     const currentList = await injectedStore.get(LISTS_TABLE, id);
     const songsIds = currentList?.songs;
@@ -83,6 +101,7 @@ export default function (selectedStore?: Store<Song>) {
 
   return {
     upsertSong,
+    patchSong,
     listSongs,
     getSongById,
     getSongByList,

@@ -68,6 +68,15 @@ router.get("/songs/artist/:artist", (req: Request, res: Response, next: NextFunc
     .catch(next);
 });
 
+router.put("/songs/:id", checkJwt, (req: Request, res: Response, next: NextFunction) => {
+  controller
+    .patchSong(req.params.id, req.body)
+    .then((item) => {
+      success(req, res, item, 200);
+    })
+    .catch(next);
+});
+
 router.get("/songs/:id", (req: Request, res: Response, next: NextFunction) => {
   controller
     .getSongById(req.params.id)
