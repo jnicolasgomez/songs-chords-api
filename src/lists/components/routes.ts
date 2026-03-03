@@ -1,7 +1,9 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
 import { checkJwt } from "../../middleware/session.ts";
+import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
+import { ListSchema } from "../types/types.ts";
 import controller from "./index.ts";
 
 /**
@@ -32,7 +34,22 @@ type ListRequest = Request & {
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/List'
+ *             type: object
+ *             required: [name, user_uid, private]
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: My Favourites
+ *               user_uid:
+ *                 type: string
+ *                 example: firebase-uid-abc
+ *               private:
+ *                 type: boolean
+ *                 example: false
+ *               songs:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *     responses:
  *       201:
  *         description: List created/updated
@@ -40,6 +57,12 @@ type ListRequest = Request & {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/List'
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       403:
  *         description: Invalid or missing JWT
  *         content:
@@ -47,7 +70,7 @@ type ListRequest = Request & {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/lists", checkJwt, (req: Request, res: Response, next: NextFunction) => {
+router.post("/lists", checkJwt, validate(ListSchema), (req: Request, res: Response, next: NextFunction) => {
   controller
     .upsertList(req.body)
     .then((item) => {

@@ -1,7 +1,9 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
 import { checkJwt } from "../../middleware/session.ts";
+import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
+import { SongSchema } from "../types/types.ts";
 import controller from "./index.ts";
 
 /**
@@ -46,14 +48,7 @@ type SongRequest = Request & {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/songs", (req: Request, res: Response, next: NextFunction) => {
-  const missing = (["title", "chords-text"] as const).filter(
-    (field) => !req.body[field]
-  );
-  if (missing.length > 0) {
-    res.status(400).json({ message: "MISSING_REQUIRED_FIELDS", error: `Missing fields: ${missing.join(", ")}` });
-    return;
-  }
+router.post("/songs", validate(SongSchema), (req: Request, res: Response, next: NextFunction) => {
   controller
     .upsertSong(req.body)
     .then((item) => {
