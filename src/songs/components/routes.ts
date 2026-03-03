@@ -39,8 +39,21 @@ type SongRequest = Request & {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Song'
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post("/songs", (req: Request, res: Response, next: NextFunction) => {
+  const missing = (["title", "chords-text"] as const).filter(
+    (field) => !req.body[field]
+  );
+  if (missing.length > 0) {
+    res.status(400).json({ message: "MISSING_REQUIRED_FIELDS", error: `Missing fields: ${missing.join(", ")}` });
+    return;
+  }
   controller
     .upsertSong(req.body)
     .then((item) => {
