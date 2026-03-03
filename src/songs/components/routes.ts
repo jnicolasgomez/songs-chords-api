@@ -4,6 +4,12 @@ import { checkJwt } from "../../middleware/session.ts";
 import { success } from "../../network/response.ts";
 import controller from "./index.ts";
 
+/**
+ * @swagger
+ * tags:
+ *   name: Songs
+ *   description: Song management
+ */
 
 const router = Router();
 
@@ -14,6 +20,26 @@ type SongRequest = Request & {
   };
 }
 
+/**
+ * @swagger
+ * /api/songs:
+ *   post:
+ *     summary: Create or update a song
+ *     tags: [Songs]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Song'
+ *     responses:
+ *       201:
+ *         description: Song created/updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Song'
+ */
 router.post("/songs", (req: Request, res: Response, next: NextFunction) => {
   controller
     .upsertSong(req.body)
@@ -23,6 +49,41 @@ router.post("/songs", (req: Request, res: Response, next: NextFunction) => {
     .catch(next);
 });
 
+/**
+ * @swagger
+ * /api/songs:
+ *   get:
+ *     summary: List songs (all, by userId, or by ids)
+ *     tags: [Songs]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter songs by user ID (requires JWT)
+ *       - in: query
+ *         name: ids
+ *         schema:
+ *           type: string
+ *         description: Comma-separated song IDs to fetch
+ *     responses:
+ *       200:
+ *         description: List of songs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Song'
+ *       403:
+ *         description: Invalid or missing JWT
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get("/songs", checkJwt, (req: SongRequest, res: Response, next: NextFunction) => {
   const { ids, userId } = req.query;
   if (ids) {
@@ -50,6 +111,37 @@ router.get("/songs", checkJwt, (req: SongRequest, res: Response, next: NextFunct
   }
 });
 
+/**
+ * @swagger
+ * /api/songs/user/{id}:
+ *   get:
+ *     summary: Get songs by user ID
+ *     tags: [Songs]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Firebase user UID
+ *     responses:
+ *       200:
+ *         description: Songs for the user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Song'
+ *       403:
+ *         description: Invalid or missing JWT
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.get("/songs/user/:id", checkJwt, (req: Request, res: Response, next: NextFunction) => {
   controller
     .songsByUser(req.params.id)
@@ -59,6 +151,29 @@ router.get("/songs/user/:id", checkJwt, (req: Request, res: Response, next: Next
     .catch(next);
 });
 
+/**
+ * @swagger
+ * /api/songs/artist/{artist}:
+ *   get:
+ *     summary: Get songs by artist name
+ *     tags: [Songs]
+ *     parameters:
+ *       - in: path
+ *         name: artist
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Artist name
+ *     responses:
+ *       200:
+ *         description: Songs by artist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Song'
+ */
 router.get("/songs/artist/:artist", (req: Request, res: Response, next: NextFunction) => {
   controller
     .songsByArtist(req.params.artist)
@@ -68,6 +183,41 @@ router.get("/songs/artist/:artist", (req: Request, res: Response, next: NextFunc
     .catch(next);
 });
 
+/**
+ * @swagger
+ * /api/songs/{id}:
+ *   put:
+ *     summary: Update a song by ID
+ *     tags: [Songs]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Song ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Song'
+ *     responses:
+ *       200:
+ *         description: Song updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Song'
+ *       403:
+ *         description: Invalid or missing JWT
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 router.put("/songs/:id", checkJwt, (req: Request, res: Response, next: NextFunction) => {
   controller
     .patchSong(req.params.id, req.body)
@@ -77,6 +227,27 @@ router.put("/songs/:id", checkJwt, (req: Request, res: Response, next: NextFunct
     .catch(next);
 });
 
+/**
+ * @swagger
+ * /api/songs/{id}:
+ *   get:
+ *     summary: Get a song by ID
+ *     tags: [Songs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Song ID
+ *     responses:
+ *       200:
+ *         description: Song found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Song'
+ */
 router.get("/songs/:id", (req: Request, res: Response, next: NextFunction) => {
   controller
     .getSongById(req.params.id)
@@ -86,6 +257,29 @@ router.get("/songs/:id", (req: Request, res: Response, next: NextFunction) => {
     .catch(next);
 });
 
+/**
+ * @swagger
+ * /api/songs/list/{id}:
+ *   get:
+ *     summary: Get songs by list ID
+ *     tags: [Songs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: List ID
+ *     responses:
+ *       200:
+ *         description: Songs in the list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Song'
+ */
 router.get("/songs/list/:id", (req: Request, res: Response, next: NextFunction) => {
   controller
     .getSongByList(req.params.id)

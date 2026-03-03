@@ -21,7 +21,9 @@
     "express": ">=5.0.1",
     "firebase-admin": "^12.7.0",
     "mongodb": "^6.10.0",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "type": "module",
   "packageManager": "yarn@1.22.21+sha1.1959a18351b811cdeedbd484a8f86c3cc3bbaf72",
@@ -30,6 +32,8 @@
     "@babel/preset-env": "^7.26.0",
     "@babel/preset-typescript": "^7.28.5",
     "@eslint/js": "^9.14.0",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "babel-jest": "^29.7.0",
     "eslint": "^9.14.0",
     "eslint-config-prettier": "^9.1.0",
