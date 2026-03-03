@@ -150,4 +150,63 @@ router.get("/lists/:id", (req: Request, res: Response, next: NextFunction) => {
     .catch(next);
 });
 
+/**
+ * @swagger
+ * /api/lists/{id}/songs:
+ *   post:
+ *     summary: Add a song to an existing list
+ *     tags: [Lists]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: List ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [songId]
+ *             properties:
+ *               songId:
+ *                 type: string
+ *                 example: song-abc-123
+ *     responses:
+ *       200:
+ *         description: Updated list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/List'
+ *       400:
+ *         description: Missing songId
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: List not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post("/lists/:id/songs", checkJwt, (req: Request, res: Response, next: NextFunction) => {
+  const { songId } = req.body;
+  if (!songId) {
+    return next(Object.assign(new Error("songId is required"), { status: 400 }));
+  }
+  controller
+    .addSongToList(req.params.id, songId)
+    .then((item) => {
+      success(req, res, item, 200);
+    })
+    .catch(next);
+});
+
 export default router;

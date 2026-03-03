@@ -52,12 +52,27 @@ export default function (injectedStore?: Store<List>) {
     return selectedStore.upsert(LISTS_TABLE, body);
   }
 
+  async function addSongToList(listId: string, songId: string): Promise<List> {
+    const list = await selectedStore.get(LISTS_TABLE, listId);
+    if (!list) {
+      throw new Error(`List ${listId} not found`);
+    }
+    const songs: string[] = list.songs ?? [];
+    if (!songs.includes(songId)) {
+      songs.push(songId);
+    }
+    const updated = { ...list, songs };
+    await selectedStore.upsert(LISTS_TABLE, updated);
+    return updated;
+  }
+
   return {
     getLists,
     upsertList,
     listsByUser,
     publicLists,
     listById,
+    addSongToList,
   };
 }
 
