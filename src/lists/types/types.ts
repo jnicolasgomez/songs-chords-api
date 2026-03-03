@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const ListSchema = z.object({
   id: z.string().optional(),
-  name: z.string(),
+  title: z.string(),
   user_uid: z.string(),
   private: z.boolean(),
   songs: z.array(z.string()).optional(),
