@@ -66,7 +66,8 @@ async function upsert<T extends Document = Document>(table: string, data: T & { 
   const collection: Collection<T> = database.collection<T>(table);
   const filter: Filter<T> = { id: data.id } as unknown as Filter<T>;
   const options = { upsert: true };
-  const result = await collection.replaceOne(filter, data, options);
+  const { _id, ...dataWithoutId } = data as any;
+  const result = await collection.replaceOne(filter, dataWithoutId as unknown as T, options);
   return { id: data.id };
 }
 
