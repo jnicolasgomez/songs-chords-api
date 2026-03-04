@@ -2,7 +2,7 @@ import * as store from "../../store/mongoStore.ts";
 import type { Store } from "../../songs/types/types.ts";
 import type { List } from "../types/types.ts";
 
-const LISTS_TABLE = "lists";
+const LISTS_TABLE = process.env.LISTS_TABLE_NAME || "lists";
 
 export default function (injectedStore?: Store<List>) {
   let selectedStore: Store<List> = store as unknown as Store<List>;

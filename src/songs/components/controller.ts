@@ -3,8 +3,8 @@ import type { Song, Store } from "../types/types.ts";
 import artistsController from "../../artists/components/index.ts";
 
 
-const SONGS_TABLE = "songs";
-const LISTS_TABLE = "lists";
+const SONGS_TABLE = process.env.SONGS_TABLE_NAME || "songs";
+const LISTS_TABLE = process.env.LISTS_TABLE_NAME || "lists";
 
 
 
