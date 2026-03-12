@@ -94,8 +94,11 @@ router.post("/songs", validate(SongSchema), (req: Request, res: Response, next: 
  */
 router.get("/songs", checkJwt, (req: SongRequest, res: Response, next: NextFunction) => {
   const { ids, userId } = req.query;
-  if (ids) {
-    const idArray = ids.split(",").map((id) => id.trim());
+  if ("ids" in req.query) {
+    if (!ids?.trim()) {
+      return success(req, res, [], 200);
+    }
+    const idArray = ids.split(",").map((id) => id.trim()).filter(Boolean);
     controller
       .getSongsByIds(idArray)
       .then((item) => {
