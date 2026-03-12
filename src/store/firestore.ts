@@ -83,7 +83,7 @@ export async function get(collection: string, id: string): Promise<Song | null> 
 export async function byUserId(collection: string, userId: string): Promise<Song[]> {
   let response: DocumentData[] = [];
   try {
-    response = await query(collection, [["user_id", "==", userId]]);
+    response = await query(collection, [["user_uid", "==", userId]]);
   } catch (err) {
     console.error(err);
   }

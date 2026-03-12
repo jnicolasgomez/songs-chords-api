@@ -17,8 +17,9 @@ export default function (selectedStore?: Store<Song>) {
 
   async function listSongs(userId?: string): Promise<Song[]> {
     if (userId) {
-      const songs = (await songsByUser(userId)).concat(await publicSongs());
-      return songs;
+      const [userSongs, pubSongs] = await Promise.all([songsByUser(userId), publicSongs()]);
+      const seen = new Set(userSongs.map((s) => s.id));
+      return userSongs.concat(pubSongs.filter((s) => !seen.has(s.id)));
     } else {
       return publicSongs();
     }

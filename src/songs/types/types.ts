@@ -8,6 +8,7 @@ export const SongDetailsSchema = z.object({
 
 export const SongSchema = z.object({
   id: z.string().optional(),
+  user_uid: z.string(),
   public: z.boolean().optional(),
   title: z.string(),
   artist: z.string().optional(),
