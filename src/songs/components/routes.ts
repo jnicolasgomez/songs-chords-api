@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
-import { checkJwt } from "../../middleware/session.ts";
+import { conditionalAuth } from "../../middleware/session.ts";
 import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
 import { SongSchema } from "../types/types.ts";
@@ -19,6 +19,7 @@ type SongRequest = Request & {
   query: {
     ids?: string;
     userId?: string;
+    bandId?: string;
   };
 }
 
@@ -92,8 +93,8 @@ router.post("/songs", validate(SongSchema), (req: Request, res: Response, next: 
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/songs", checkJwt, (req: SongRequest, res: Response, next: NextFunction) => {
-  const { ids, userId } = req.query;
+router.get("/songs", conditionalAuth, (req: SongRequest, res: Response, next: NextFunction) => {
+  const { ids, userId, bandId } = req.query;
   if ("ids" in req.query) {
     if (!ids?.trim()) {
       return success(req, res, [], 200);
@@ -101,6 +102,13 @@ router.get("/songs", checkJwt, (req: SongRequest, res: Response, next: NextFunct
     const idArray = ids.split(",").map((id) => id.trim()).filter(Boolean);
     controller
       .getSongsByIds(idArray)
+      .then((item) => {
+        success(req, res, item, 200);
+      })
+      .catch(next);
+  } else if (bandId) {
+    controller
+      .songsByBand(bandId)
       .then((item) => {
         success(req, res, item, 200);
       })
@@ -153,7 +161,7 @@ router.get("/songs", checkJwt, (req: SongRequest, res: Response, next: NextFunct
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/songs/user/:id", checkJwt, (req: Request, res: Response, next: NextFunction) => {
+router.get("/songs/user/:id", conditionalAuth, (req: Request, res: Response, next: NextFunction) => {
   controller
     .songsByUser(req.params.id)
     .then((item) => {
@@ -229,7 +237,7 @@ router.get("/songs/artist/:artist", (req: Request, res: Response, next: NextFunc
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put("/songs/:id", checkJwt, (req: Request, res: Response, next: NextFunction) => {
+router.put("/songs/:id", conditionalAuth, (req: Request, res: Response, next: NextFunction) => {
   controller
     .patchSong(req.params.id, req.body)
     .then((item) => {

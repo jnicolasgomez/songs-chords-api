@@ -6,6 +6,7 @@ export const ListSchema = z.looseObject({
   user_uid: z.string(),
   private: z.boolean(),
   songs: z.array(z.string()).optional(),
+  band_id: z.string().optional(),
 });
 
 export type List = z.infer<typeof ListSchema>;

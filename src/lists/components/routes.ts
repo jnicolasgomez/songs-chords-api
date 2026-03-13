@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
-import { checkJwt } from "../../middleware/session.ts";
+import { conditionalAuth } from "../../middleware/session.ts";
 import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
 import { ListSchema } from "../types/types.ts";
@@ -18,6 +18,7 @@ const router = Router();
 type ListRequest = Request & {
   query: {
     userId?: string;
+    bandId?: string;
   };
 }
 
@@ -70,7 +71,7 @@ type ListRequest = Request & {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/lists", checkJwt, validate(ListSchema), (req: Request, res: Response, next: NextFunction) => {
+router.post("/lists", conditionalAuth, validate(ListSchema), (req: Request, res: Response, next: NextFunction) => {
   controller
     .upsertList(req.body)
     .then((item) => {
@@ -101,9 +102,16 @@ router.post("/lists", checkJwt, validate(ListSchema), (req: Request, res: Respon
  *               items:
  *                 $ref: '#/components/schemas/List'
  */
-router.get("/lists", (req: ListRequest, res: Response, next: NextFunction) => {
-  const { userId } = req.query;
-  if (userId) {
+router.get("/lists", conditionalAuth, (req: ListRequest, res: Response, next: NextFunction) => {
+  const { userId, bandId } = req.query;
+  if (bandId) {
+    controller
+      .listsByBand(bandId)
+      .then((item) => {
+        success(req, res, item, 200);
+      })
+      .catch(next);
+  } else if (userId) {
     controller
       .listsByUser(userId)
       .then((item) => {
@@ -196,7 +204,7 @@ router.get("/lists/:id", (req: Request, res: Response, next: NextFunction) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/lists/:id/songs", checkJwt, (req: Request, res: Response, next: NextFunction) => {
+router.post("/lists/:id/songs", conditionalAuth, (req: Request, res: Response, next: NextFunction) => {
   const { songId } = req.body;
   if (!songId) {
     return next(Object.assign(new Error("songId is required"), { status: 400 }));

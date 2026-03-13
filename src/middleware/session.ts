@@ -5,32 +5,40 @@ const handleHttp = (res: Response, message: string, error: unknown, statusCode: 
   res.status(statusCode).json({ message, error });
 };
 
-const checkJwt = (req: Request, res: Response, next: NextFunction): void => {
-  const userId = req.query.userId as string || req.params.id;
-  if (userId) {
-    try {
-      const jwtByUser = req.headers.authorization || null;
-      const jwt = jwtByUser?.split(" ").pop();
-      if (jwt) {
-        getAuth()
-          .verifyIdToken(jwt)
-          .then(function () {
-            return next();
-          })
-          .catch((e) => {
-            console.error(e);
-            handleHttp(res, "INVALID_SESSION", e, 403);
-          });
-      } else {
-        handleHttp(res, "INVALID_SESSION", "No jwt", 403);
-      }
-    } catch (e) {
-      console.error(e);
-      handleHttp(res, "INVALID_SESSION", e, 400);
+const validateJwt = (req: Request, res: Response, next: NextFunction): void => {
+  try {
+    const jwt = req.headers.authorization?.split(" ").pop();
+    if (jwt) {
+      getAuth()
+        .verifyIdToken(jwt)
+        .then(() => next())
+        .catch((e) => {
+          console.error(e);
+          handleHttp(res, "INVALID_SESSION", e, 403);
+        });
+    } else {
+      handleHttp(res, "INVALID_SESSION", "No jwt", 403);
     }
-  } else {
-    return next();
+  } catch (e) {
+    console.error(e);
+    handleHttp(res, "INVALID_SESSION", e, 400);
   }
 };
 
-export { checkJwt };
+// Validates JWT only when userId query param or :id route param is present.
+// Requests without those params pass through unauthenticated.
+const conditionalAuth = (req: Request, res: Response, next: NextFunction): void => {
+  const userId = (req.query.userId as string) || req.params.id;
+  if (userId) {
+    validateJwt(req, res, next);
+  } else {
+    next();
+  }
+};
+
+// Always validates JWT, regardless of params.
+const requireAuth = (req: Request, res: Response, next: NextFunction): void => {
+  validateJwt(req, res, next);
+};
+
+export { conditionalAuth, requireAuth };

@@ -57,6 +57,10 @@ export default function (selectedStore?: Store<Song>) {
     return injectedStore.query(SONGS_TABLE, [["artist", "==", artist]]);
   }
 
+  async function songsByBand(bandId: string): Promise<Song[]> {
+    return injectedStore.query(SONGS_TABLE, [["band_id", "==", bandId]]);
+  }
+
   async function upsertSong(body: any): Promise<{id: string}> {
     const result = await injectedStore.upsert(SONGS_TABLE, body);
     if (body.artist) {
@@ -109,5 +113,6 @@ export default function (selectedStore?: Store<Song>) {
     getSongsByIds,
     songsByUser,
     songsByArtist,
+    songsByBand,
   };
 }

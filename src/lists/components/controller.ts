@@ -52,6 +52,10 @@ export default function (injectedStore?: Store<List>) {
     return selectedStore.upsert(LISTS_TABLE, body);
   }
 
+  async function listsByBand(bandId: string): Promise<List[]> {
+    return selectedStore.query(LISTS_TABLE, { band_id: bandId });
+  }
+
   async function addSongToList(listId: string, songId: string): Promise<List> {
     const list = await selectedStore.get(LISTS_TABLE, listId);
     if (!list) {
@@ -70,6 +74,7 @@ export default function (injectedStore?: Store<List>) {
     getLists,
     upsertList,
     listsByUser,
+    listsByBand,
     publicLists,
     listById,
     addSongToList,

@@ -17,6 +17,7 @@ export const SongSchema = z.object({
   tags: z.array(z.string()).optional(),
   spotifyUrl: z.string().optional(),
   youtubeUrl: z.string().optional(),
+  band_id: z.string().optional(),
 }).passthrough();
 
 export type SongDetails = z.infer<typeof SongDetailsSchema>;
