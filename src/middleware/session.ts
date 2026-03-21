@@ -11,7 +11,7 @@ const validateJwt = (req: Request, res: Response, next: NextFunction): void => {
     if (jwt) {
       getAuth()
         .verifyIdToken(jwt)
-        .then(() => next())
+        .then((decodedToken) => { (req as any).uid = decodedToken.uid; next(); })
         .catch((e) => {
           console.error(e);
           handleHttp(res, "INVALID_SESSION", e, 403);
