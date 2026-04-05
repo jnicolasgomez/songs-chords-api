@@ -8,6 +8,7 @@ export const ListSchema = z.looseObject({
   songs: z.array(z.string()).optional(),
   band_id: z.string().optional(),
   shared_with: z.array(z.string()).optional(),
+  show_date: z.string().optional(),
 });
 
 export type List = z.infer<typeof ListSchema>;
