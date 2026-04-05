@@ -9,6 +9,7 @@ export const ListSchema = z.looseObject({
   band_id: z.string().optional(),
   shared_with: z.array(z.string()).optional(),
   show_date: z.string().optional(),
+  pinned: z.boolean().optional(),
 });
 
 export type List = z.infer<typeof ListSchema>;
