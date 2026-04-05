@@ -43,7 +43,9 @@ const corsOptions: CorsOptions = {
   },
 };
 
-initializeApp();
+initializeApp({
+  projectId: process.env.GOOGLE_CLOUD_PROJECT,
+});
 const app: Application = express();
 
 app.use(bodyParser.json());

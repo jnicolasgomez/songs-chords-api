@@ -205,3 +205,13 @@ export function collection(collectionName: string): CollectionReference<Document
   if (!db) throw new Error("Not connected to Firestore");
   return db.collection(collectionName);
 }
+
+/**
+ * Gets documents where userId is in the shared_with array.
+ * @param {string} collection - The collection name.
+ * @param {string} userId - The user ID.
+ * @returns {Promise<Song[]>} - The document data array.
+ */
+export async function sharedWithUser(collection: string, userId: string): Promise<Song[]> {
+  return query(collection, [["shared_with", "array-contains", userId]]);
+}

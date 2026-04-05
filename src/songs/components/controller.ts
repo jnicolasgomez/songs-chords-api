@@ -17,9 +17,17 @@ export default function (selectedStore?: Store<Song>) {
 
   async function listSongs(userId?: string): Promise<Song[]> {
     if (userId) {
-      const [userSongs, pubSongs] = await Promise.all([songsByUser(userId), publicSongs()]);
+      const [userSongs, pubSongs, sharedSongs] = await Promise.all([
+        songsByUser(userId),
+        publicSongs(),
+        songsSharedWithUser(userId),
+      ]);
       const seen = new Set(userSongs.map((s) => s.id));
-      return userSongs.concat(pubSongs.filter((s) => !seen.has(s.id)));
+      const merged = [...userSongs];
+      for (const s of [...sharedSongs, ...pubSongs]) {
+        if (!seen.has(s.id)) { seen.add(s.id); merged.push(s); }
+      }
+      return merged;
     } else {
       return publicSongs();
     }
@@ -28,6 +36,10 @@ export default function (selectedStore?: Store<Song>) {
   async function songsByUser(userId: string): Promise<Song[]> {
     let songs = await injectedStore.byUserId(SONGS_TABLE, userId);
     return songs;
+  }
+
+  async function songsSharedWithUser(userId: string): Promise<Song[]> {
+    return injectedStore.sharedWithUser(SONGS_TABLE, userId);
   }
 
   async function publicSongs(): Promise<Song[]> {
@@ -70,7 +82,7 @@ export default function (selectedStore?: Store<Song>) {
   }
 
   const ALLOWED_PATCH_FIELDS = [
-    'title', 'artist', 'chords-text', 'tags', 'spotifyUrl', 'youtubeUrl', 'public', 'details'
+    'title', 'artist', 'chords-text', 'tags', 'spotifyUrl', 'youtubeUrl', 'public', 'details', 'shared_with'
   ] as const;
 
   async function patchSong(id: string, body: Partial<Song>): Promise<{id: string}> {
@@ -85,6 +97,21 @@ export default function (selectedStore?: Store<Song>) {
       await artistsController.upsertArtist(body.artist);
     }
     return result;
+  }
+
+  async function shareSong(songId: string, targetUid: string): Promise<{ id: string }> {
+    const song = await injectedStore.get(SONGS_TABLE, songId);
+    if (!song) throw Object.assign(new Error("Song not found"), { status: 404 });
+    const shared_with: string[] = song.shared_with ?? [];
+    if (!shared_with.includes(targetUid)) shared_with.push(targetUid);
+    return injectedStore.upsert(SONGS_TABLE, { ...song, shared_with });
+  }
+
+  async function unshareSong(songId: string, targetUid: string): Promise<{ id: string }> {
+    const song = await injectedStore.get(SONGS_TABLE, songId);
+    if (!song) throw Object.assign(new Error("Song not found"), { status: 404 });
+    const shared_with = (song.shared_with ?? []).filter((uid: string) => uid !== targetUid);
+    return injectedStore.upsert(SONGS_TABLE, { ...song, shared_with });
   }
 
   async function getSongByList(id: string): Promise<Song[]> {
@@ -114,5 +141,7 @@ export default function (selectedStore?: Store<Song>) {
     songsByUser,
     songsByArtist,
     songsByBand,
+    shareSong,
+    unshareSong,
   };
 }

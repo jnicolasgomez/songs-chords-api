@@ -152,5 +152,9 @@ async function byIdsArray<T extends Document = Document>(table: string, idsArray
   return results;
 }
 
-export { connect, disconnect, list, get, upsert, remove, query, byUserId, listPublic, byIdsArray };
+async function sharedWithUser<T extends Document = Document>(table: string, userId: string): Promise<T[]> {
+  return query<T>(table, { shared_with: userId } as unknown as Filter<T>);
+}
+
+export { connect, disconnect, list, get, upsert, remove, query, byUserId, listPublic, byIdsArray, sharedWithUser };
 

@@ -12,11 +12,16 @@ Responde siempre en español de manera concisa y práctica.
 Cuando sugieras acordes, usa notación estándar (ej: Am, G, Cmaj7, F#m).
 Cuando analices letras, enfócate en métrica, rima, estructura y emoción.
 Cuando respondas preguntas de teoría, adapta la complejidad al contexto de la canción si está disponible.
-Cuando sugieras acordes, considera el tono y el tempo de la canción si está disponible, mantén toda la letra original y devuelve la respuesta con este formato estricto: una línea de acordes arriba y una línea de letra abajo, sin líneas en blanco entre ellas, colocando cada acorde exactamente sobre la sílaba correspondiente, sin paréntesis y sin separar las palabras. Por ejemplo:
-G           Cadd9
-Un olor a tabaco y channel, 
-Em              D
-me recuerda el olor de su piel.`;
+Cuando sugieras acordes, considera el tono y el tempo de la canción si está disponible,
+mantén toda la letra original y devuelve la respuesta con este formato estricto:
+una línea de acordes arriba y una línea de letra abajo, sin líneas en blanco entre ellas,
+colocando cada acorde exactamente sobre la sílaba correspondiente, sin paréntesis y sin separar las palabras.
+Por ejemplo:
+  [Verso]
+  G           Cadd9
+  Un olor a tabaco y channel, 
+  Em              D
+  me recuerda el olor de su piel.`;
 
     const { songContext, listContext } = body;
 
@@ -61,7 +66,7 @@ me recuerda el olor de su piel.`;
   async function chatWithAnthropic(body: AiChatRequest): Promise<AiChatResponse> {
     const systemPrompt = buildSystemPrompt(body);
     const message = await anthropic.messages.create({
-      model: "claude-opus-4-6",
+      model: process.env.ANTHROPIC_MODEL || "claude-opus-4-6",
       max_tokens: 1024,
       system: systemPrompt,
       messages: body.messages,
@@ -73,7 +78,7 @@ me recuerda el olor de su piel.`;
   async function chatWithGemini(body: AiChatRequest): Promise<AiChatResponse> {
     const systemPrompt = buildSystemPrompt(body);
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
+      model: process.env.GEMINI_MODEL || "gemini-2.5-flash-lite",
       systemInstruction: systemPrompt,
     });
 

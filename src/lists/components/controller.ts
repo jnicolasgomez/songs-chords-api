@@ -18,14 +18,10 @@ export default function (injectedStore?: Store<List>) {
     let lists = await selectedStore.query(LISTS_TABLE, {
       $or: [
         { user_uid: userId }, // Lists that belong to the user
-        {
-          $or: [
-            // Public lists based on private field criteria
-            { private: false },
-            { private: { $exists: false } }, // Lists where private field does not exist
-            { private: null }, // Lists where private field is explicitly set to null
-          ],
-        }, // Public lists
+        { shared_with: userId }, // Lists shared with the user
+        { private: false },
+        { private: { $exists: false } }, // Lists where private field does not exist
+        { private: null }, // Lists where private field is explicitly set to null
       ],
     });
     return lists;
@@ -56,6 +52,21 @@ export default function (injectedStore?: Store<List>) {
     return selectedStore.query(LISTS_TABLE, { band_id: bandId });
   }
 
+  async function shareList(listId: string, targetUid: string): Promise<{ id: string }> {
+    const list = await selectedStore.get(LISTS_TABLE, listId);
+    if (!list) throw Object.assign(new Error("List not found"), { status: 404 });
+    const shared_with: string[] = list.shared_with ?? [];
+    if (!shared_with.includes(targetUid)) shared_with.push(targetUid);
+    return selectedStore.upsert(LISTS_TABLE, { ...list, shared_with });
+  }
+
+  async function unshareList(listId: string, targetUid: string): Promise<{ id: string }> {
+    const list = await selectedStore.get(LISTS_TABLE, listId);
+    if (!list) throw Object.assign(new Error("List not found"), { status: 404 });
+    const shared_with = (list.shared_with ?? []).filter((uid: string) => uid !== targetUid);
+    return selectedStore.upsert(LISTS_TABLE, { ...list, shared_with });
+  }
+
   async function addSongToList(listId: string, songId: string): Promise<List> {
     const list = await selectedStore.get(LISTS_TABLE, listId);
     if (!list) {
@@ -78,6 +89,8 @@ export default function (injectedStore?: Store<List>) {
     publicLists,
     listById,
     addSongToList,
+    shareList,
+    unshareList,
   };
 }
 

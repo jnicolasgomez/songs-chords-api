@@ -20,6 +20,7 @@ export const SongSchema = z.object({
   spotifyUrl: z.string().optional(),
   youtubeUrl: z.string().optional(),
   band_id: z.string().optional(),
+  shared_with: z.array(z.string()).optional(),
 }).passthrough();
 
 export type SongDetails = z.infer<typeof SongDetailsSchema>;
@@ -33,4 +34,5 @@ export interface Store<T = any> {
   upsert: (table: string, data: any) => Promise<{ id: string }>;
   list: (table: string, fields?: string[]) => Promise<T[]>;
   query: (table: string, query: any) => Promise<T[]>;
+  sharedWithUser: (table: string, userId: string) => Promise<T[]>;
 }

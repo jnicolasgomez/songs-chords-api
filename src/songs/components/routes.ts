@@ -1,10 +1,11 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
-import { conditionalAuth } from "../../middleware/session.ts";
+import { conditionalAuth, requireAuth } from "../../middleware/session.ts";
 import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
 import { SongSchema } from "../types/types.ts";
 import controller from "./index.ts";
+import usersController from "../../users/components/index.ts";
 
 /**
  * @swagger
@@ -305,6 +306,127 @@ router.get("/songs/list/:id", (req: Request, res: Response, next: NextFunction) 
     .then((item) => {
       success(req, res, item, 200);
     })
+    .catch(next);
+});
+
+/**
+ * @swagger
+ * /api/songs/{id}/collaborators:
+ *   post:
+ *     summary: Share a song with a collaborator by email
+ *     description: Resolves the email to a Firebase UID and adds it to the song's shared_with array. The collaborator will be able to view and edit the song.
+ *     tags: [Songs]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Song ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: collaborator@example.com
+ *     responses:
+ *       200:
+ *         description: Collaborator added
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *       400:
+ *         description: Missing email
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Invalid or missing JWT
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Song or user not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post("/songs/:id/collaborators", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  const { email } = req.body as { email?: string };
+  if (!email) {
+    return next(Object.assign(new Error("email is required"), { status: 400 }));
+  }
+  try {
+    const { uid } = await usersController.lookupByEmail(email);
+    const result = await controller.shareSong(req.params.id, uid);
+    success(req, res, result, 200);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * @swagger
+ * /api/songs/{id}/collaborators/{uid}:
+ *   delete:
+ *     summary: Remove a collaborator from a song
+ *     tags: [Songs]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Song ID
+ *       - in: path
+ *         name: uid
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Firebase UID of the collaborator to remove
+ *     responses:
+ *       200:
+ *         description: Collaborator removed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *       403:
+ *         description: Invalid or missing JWT
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Song not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.delete("/songs/:id/collaborators/:uid", requireAuth, (req: Request, res: Response, next: NextFunction) => {
+  controller
+    .unshareSong(req.params.id, req.params.uid)
+    .then((item) => success(req, res, item, 200))
     .catch(next);
 });
 
