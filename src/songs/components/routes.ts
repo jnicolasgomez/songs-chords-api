@@ -51,7 +51,7 @@ type SongRequest = Request & {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/songs", writeLimiter, validate(SongSchema), (req: Request, res: Response, next: NextFunction) => {
+router.post("/songs", requireAuth, writeLimiter, validate(SongSchema), (req: Request, res: Response, next: NextFunction) => {
   controller
     .upsertSong(req.body)
     .then((item) => {

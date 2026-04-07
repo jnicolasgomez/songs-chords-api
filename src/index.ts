@@ -5,6 +5,7 @@ import apiRoutes from "./routes/index.ts";
 import bodyParser from "body-parser";
 import cors from "cors";
 import type { CorsOptions } from "cors";
+import helmet from "helmet";
 import { initializeApp } from "firebase-admin/app";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swagger.ts";
@@ -48,13 +49,19 @@ initializeApp({
   projectId: process.env.GOOGLE_CLOUD_PROJECT,
 });
 const app: Application = express();
+const isProduction = process.env.NODE_ENV === "production";
 
+app.use(helmet());
 app.use(bodyParser.json());
 app.use(logger("dev"));
 app.use(cors(corsOptions));
 
 app.use("/api", globalLimiter, apiRoutes);
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Swagger UI: only available in development
+if (!isProduction) {
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+}
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

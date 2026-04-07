@@ -73,7 +73,7 @@ type ListRequest = Request & {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/lists", conditionalAuth, writeLimiter, validate(ListSchema), (req: Request, res: Response, next: NextFunction) => {
+router.post("/lists", requireAuth, writeLimiter, validate(ListSchema), (req: Request, res: Response, next: NextFunction) => {
   controller
     .upsertList(req.body)
     .then((item) => {
