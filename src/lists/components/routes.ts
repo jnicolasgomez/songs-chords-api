@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
 import { conditionalAuth, requireAuth } from "../../middleware/session.ts";
+import { writeLimiter } from "../../middleware/rateLimit.ts";
 import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
 import { ListSchema } from "../types/types.ts";
@@ -72,7 +73,7 @@ type ListRequest = Request & {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/lists", conditionalAuth, validate(ListSchema), (req: Request, res: Response, next: NextFunction) => {
+router.post("/lists", conditionalAuth, writeLimiter, validate(ListSchema), (req: Request, res: Response, next: NextFunction) => {
   controller
     .upsertList(req.body)
     .then((item) => {
@@ -205,7 +206,7 @@ router.get("/lists/:id", (req: Request, res: Response, next: NextFunction) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/lists/:id/songs", conditionalAuth, (req: Request, res: Response, next: NextFunction) => {
+router.post("/lists/:id/songs", conditionalAuth, writeLimiter, (req: Request, res: Response, next: NextFunction) => {
   const { songId } = req.body;
   if (!songId) {
     return next(Object.assign(new Error("songId is required"), { status: 400 }));
@@ -274,7 +275,7 @@ router.post("/lists/:id/songs", conditionalAuth, (req: Request, res: Response, n
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/lists/:id/collaborators", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/lists/:id/collaborators", requireAuth, writeLimiter, async (req: Request, res: Response, next: NextFunction) => {
   const { email } = req.body as { email?: string };
   if (!email) {
     return next(Object.assign(new Error("email is required"), { status: 400 }));

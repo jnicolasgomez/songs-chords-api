@@ -8,6 +8,7 @@ import type { CorsOptions } from "cors";
 import { initializeApp } from "firebase-admin/app";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swagger.ts";
+import { globalLimiter } from "./middleware/rateLimit.ts";
 
 const port: number = process.env.PORT ? parseInt(process.env.PORT) : 3001;
 const whitelist: string[] = process.env.CORS_WHITELIST
@@ -52,7 +53,7 @@ app.use(bodyParser.json());
 app.use(logger("dev"));
 app.use(cors(corsOptions));
 
-app.use("/api", apiRoutes);
+app.use("/api", globalLimiter, apiRoutes);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.listen(port, () => {

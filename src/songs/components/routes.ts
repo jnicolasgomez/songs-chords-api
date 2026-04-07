@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
 import { conditionalAuth, requireAuth } from "../../middleware/session.ts";
+import { writeLimiter } from "../../middleware/rateLimit.ts";
 import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
 import { SongSchema } from "../types/types.ts";
@@ -50,7 +51,7 @@ type SongRequest = Request & {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/songs", validate(SongSchema), (req: Request, res: Response, next: NextFunction) => {
+router.post("/songs", writeLimiter, validate(SongSchema), (req: Request, res: Response, next: NextFunction) => {
   controller
     .upsertSong(req.body)
     .then((item) => {
@@ -238,7 +239,7 @@ router.get("/songs/artist/:artist", (req: Request, res: Response, next: NextFunc
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put("/songs/:id", conditionalAuth, (req: Request, res: Response, next: NextFunction) => {
+router.put("/songs/:id", conditionalAuth, writeLimiter, (req: Request, res: Response, next: NextFunction) => {
   controller
     .patchSong(req.params.id, req.body)
     .then((item) => {
@@ -365,7 +366,7 @@ router.get("/songs/list/:id", (req: Request, res: Response, next: NextFunction) 
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/songs/:id/collaborators", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/songs/:id/collaborators", requireAuth, writeLimiter, async (req: Request, res: Response, next: NextFunction) => {
   const { email } = req.body as { email?: string };
   if (!email) {
     return next(Object.assign(new Error("email is required"), { status: 400 }));
