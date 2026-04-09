@@ -3,6 +3,7 @@ import { getFirestore, Query, WriteBatch, CollectionReference } from "firebase-a
 import type { Firestore, DocumentData, WhereFilterOp } from '@google-cloud/firestore';
 import { chunkArray } from "../utils/array.ts";
 import type { Song } from "../songs/types/types";
+import logger from "../utils/logger.ts";
 
 let db: Firestore | null = null;
 
@@ -13,7 +14,7 @@ export async function connect(): Promise<void> {
   if (!db) {
     const dbId = process.env.FIRESTORE_DATABASE_ID || "(default)";
     db = getFirestore(dbId);
-    console.log("Connected to db Firestore using Firebase Admin SDK");
+    logger.info("Connected to Firestore", { databaseId: dbId });
   }
 }
 
@@ -22,7 +23,7 @@ export async function connect(): Promise<void> {
  */
 export async function disconnect(): Promise<void> {
   db = null;
-  console.log("Disconnected from Firestore");
+  logger.info("Disconnected from Firestore");
 }
 
 /**
@@ -195,6 +196,17 @@ function buildQuery(db: Firestore, collection: string, conditions: QueryConditio
  * Creates a new batch object.
  * @returns {Promise<WriteBatch>} - A Firestore batch object.
  */
+export async function ping(): Promise<boolean> {
+  try {
+    await connect();
+    if (!db) return false;
+    await db.listCollections();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function batch(): Promise<WriteBatch> {
   await connect();
   if (!db) throw new Error("Not connected to Firestore");

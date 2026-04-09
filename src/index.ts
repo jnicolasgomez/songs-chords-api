@@ -10,8 +10,9 @@ Sentry.init({
 
 import express from "express";
 import type { Application } from "express";
-import logger from "morgan";
+import morgan from "morgan";
 import apiRoutes from "./routes/index.ts";
+import logger, { morganStream } from "./utils/logger.ts";
 import bodyParser from "body-parser";
 import cors from "cors";
 import type { CorsOptions } from "cors";
@@ -63,7 +64,7 @@ const isProduction = process.env.NODE_ENV === "production";
 
 app.use(helmet());
 app.use(bodyParser.json());
-app.use(logger("dev"));
+app.use(morgan("combined", { stream: morganStream }));
 app.use(cors(corsOptions));
 
 app.use("/api", globalLimiter, apiRoutes);
@@ -77,5 +78,5 @@ if (!isProduction) {
 Sentry.setupExpressErrorHandler(app);
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  logger.info("Server started", { port, env: process.env.NODE_ENV || "development" });
 });

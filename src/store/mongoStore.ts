@@ -2,6 +2,7 @@ import { MongoClient, ObjectId} from "mongodb";
 import type { Document, Db, Collection, Filter, WithId} from 'mongodb'
 import config from "../../config.js";
 import { chunkArray } from "../utils/array.ts";
+import logger from "../utils/logger.ts";
 
 const uri: string = config.mongoDb.uri;
 const client: MongoClient = new MongoClient(uri);
@@ -13,15 +14,15 @@ async function connect(): Promise<void> {
   try {
     await client.connect();
     database = client.db();
-    console.log("Connected to MongoDB Atlas");
+    logger.info("Connected to MongoDB Atlas");
   } catch (error) {
-    console.error("Error connecting to MongoDB Atlas:", error);
+    logger.error("Error connecting to MongoDB Atlas", { error: String(error) });
   }
 }
 
 async function disconnect(): Promise<void> {
   await client.close();
-  console.log("Disconnected from MongoDB Atlas");
+  logger.info("Disconnected from MongoDB Atlas");
 }
 
 async function list<T extends Document = Document>(table: string, fields?: string[]): Promise<T[]> {
@@ -156,5 +157,14 @@ async function sharedWithUser<T extends Document = Document>(table: string, user
   return query<T>(table, { shared_with: userId } as unknown as Filter<T>);
 }
 
-export { connect, disconnect, list, get, upsert, remove, query, byUserId, listPublic, byIdsArray, sharedWithUser };
+async function ping(): Promise<boolean> {
+  try {
+    await client.db().command({ ping: 1 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export { connect, disconnect, list, get, upsert, remove, query, byUserId, listPublic, byIdsArray, sharedWithUser, ping };
 
