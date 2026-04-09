@@ -1,3 +1,13 @@
+import * as Sentry from "@sentry/node";
+
+// Sentry must be initialized before any other imports
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV || "development",
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+  enabled: process.env.NODE_ENV === "production",
+});
+
 import express from "express";
 import type { Application } from "express";
 import logger from "morgan";
@@ -62,6 +72,9 @@ app.use("/api", globalLimiter, apiRoutes);
 if (!isProduction) {
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
+
+// Sentry error handler must be after routes and before other error handlers
+Sentry.setupExpressErrorHandler(app);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
