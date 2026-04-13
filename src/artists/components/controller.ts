@@ -8,9 +8,11 @@ export default function (injectedStore = store) {
     return injectedStore.list(ARTISTS_TABLE) as Promise<Artist[]>;
   }
 
-  async function upsertArtist(name: string): Promise<{ id: string }> {
+  async function upsertArtist(name: string, imageUrl?: string): Promise<{ id: string }> {
     const id = name.toLowerCase().trim();
-    return injectedStore.upsert(ARTISTS_TABLE, { id, name } as any);
+    const data: Artist = { id, name };
+    if (imageUrl) data.imageUrl = imageUrl;
+    return injectedStore.upsert(ARTISTS_TABLE, data as any);
   }
 
   return { listArtists, upsertArtist };

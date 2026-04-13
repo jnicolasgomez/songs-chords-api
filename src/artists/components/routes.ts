@@ -64,7 +64,7 @@ router.get("/artists", (req: Request, res: Response, next: NextFunction) => {
  */
 router.post("/artists", (req: Request, res: Response, next: NextFunction) => {
   controller
-    .upsertArtist(req.body.name)
+    .upsertArtist(req.body.name, req.body.imageUrl)
     .then((item) => {
       success(req, res, item, 201);
     })
