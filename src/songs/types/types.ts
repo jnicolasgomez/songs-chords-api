@@ -6,6 +6,8 @@ export const SongDetailsSchema = z.object({
   voice: z.string().optional(),
   keyboardBank: z.string().optional(),
   tone: z.string().optional(),
+  duration: z.string().optional(),
+  capo: z.number().optional(),
 });
 
 export const SongSchema = z.object({
