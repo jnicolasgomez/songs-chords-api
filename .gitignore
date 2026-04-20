@@ -8,3 +8,4 @@ gha-creds-*.json
 migration/
 app.yaml
 bandmate.code-workspace
+scripts/
