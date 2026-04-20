@@ -1,4 +1,5 @@
 import * as store from "../../store/firestore.ts";
+import { invalidateCache } from "../../store/firestore.ts";
 import type { Artist } from "../types/types.ts";
 
 const ARTISTS_TABLE = "artists";
@@ -12,7 +13,9 @@ export default function (injectedStore = store) {
     const id = name.toLowerCase().trim();
     const data: Artist = { id, name };
     if (imageUrl) data.imageUrl = imageUrl;
-    return injectedStore.upsert(ARTISTS_TABLE, data as any);
+    const result = await injectedStore.upsert(ARTISTS_TABLE, data as any);
+    invalidateCache(`list:${ARTISTS_TABLE}`); // bust the cache on write
+    return result;
   }
 
   return { listArtists, upsertArtist };

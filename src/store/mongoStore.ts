@@ -8,6 +8,15 @@ const uri: string = config.mongoDb.uri;
 const client: MongoClient = new MongoClient(uri);
 let database: Db | undefined;
 
+const _cache = new Map<string, { data: any; expiresAt: number }>();
+const CACHE_TTL_MS = 60_000; // 1 minute
+
+export function invalidateTable(table: string): void {
+  for (const key of _cache.keys()) {
+    if (key.startsWith(`${table}:`)) _cache.delete(key);
+  }
+}
+
 connect();
 
 async function connect(): Promise<void> {
@@ -29,16 +38,19 @@ async function list<T extends Document = Document>(table: string, fields?: strin
   if (!database) {
     throw new Error("Database not connected");
   }
+  const cacheKey = `${table}:list:${fields?.join(',') ?? ''}`;
+  const hit = _cache.get(cacheKey);
+  if (hit && hit.expiresAt > Date.now()) return hit.data;
+
   const collection: Collection<T> = database.collection<T>(table);
-  let query = collection.find({});
+  let dbQuery = collection.find({});
   if (fields && fields.length > 0) {
     const projection: Record<string, 1> = {};
-    fields.forEach(field => {
-      projection[field] = 1;
-    });
-    query = query.project(projection);
+    fields.forEach(field => { projection[field] = 1; });
+    dbQuery = dbQuery.project(projection);
   }
-  const result: WithId<T>[] = await query.toArray();
+  const result: WithId<T>[] = await dbQuery.toArray();
+  _cache.set(cacheKey, { data: result as T[], expiresAt: Date.now() + CACHE_TTL_MS });
   return result as T[];
 }
 
@@ -89,8 +101,13 @@ async function query<T extends Document = Document>(table: string, q: Filter<T>)
   if (!database) {
     throw new Error("Database not connected");
   }
+  const cacheKey = `${table}:query:${JSON.stringify(q)}`;
+  const hit = _cache.get(cacheKey);
+  if (hit && hit.expiresAt > Date.now()) return hit.data;
+
   const collection: Collection<T> = database.collection<T>(table);
   const result: WithId<T>[] = await collection.find(q).toArray();
+  _cache.set(cacheKey, { data: result as T[], expiresAt: Date.now() + CACHE_TTL_MS });
   return result as T[];
 }
 

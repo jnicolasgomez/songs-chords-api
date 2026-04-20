@@ -7,6 +7,13 @@ import logger from "../utils/logger.ts";
 
 let db: Firestore | null = null;
 
+const _cache = new Map<string, { data: any; expiresAt: number }>();
+const CACHE_TTL_MS = 60_000; // 1 minute
+
+export function invalidateCache(key: string): void {
+  _cache.delete(key);
+}
+
 /**
  * Connects to Firestore using Firebase Admin SDK.
  */
@@ -32,13 +39,16 @@ export async function disconnect(): Promise<void> {
  * @returns {Promise<Song[]>} - A list of documents.
  */
 export async function list(collection: string): Promise<Song[]> {
+  const key = `list:${collection}`;
+  const hit = _cache.get(key);
+  if (hit && hit.expiresAt > Date.now()) return hit.data;
+
   await connect();
   let response: Song[] = [];
   try {
     const snapshot = await db!.collection(collection).get();
-    response = snapshot.docs.map((doc) => {
-      return { id: doc.id, ...doc.data() } as Song;
-    });
+    response = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Song));
+    _cache.set(key, { data: response, expiresAt: Date.now() + CACHE_TTL_MS });
   } catch (err) {
     console.error(err);
   }
@@ -51,12 +61,14 @@ export async function list(collection: string): Promise<Song[]> {
  * @returns {Promise<DocumentData[]>} - A list of documents.
  */
 export async function listPublic(collection: string): Promise<Song[]> {
+  const key = `listPublic:${collection}`;
+  const hit = _cache.get(key);
+  if (hit && hit.expiresAt > Date.now()) return hit.data;
+
   let response: Song[] = [];
   try {
-    response = await query(collection, [
-      ["public", "in", ["true", true, null]],
-    ]);
-
+    response = await query(collection, [["public", "==", true]]);
+    _cache.set(key, { data: response, expiresAt: Date.now() + CACHE_TTL_MS });
   } catch (err) {
     console.error(err);
   }
