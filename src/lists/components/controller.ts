@@ -46,7 +46,6 @@ export default function (injectedStore?: Store<List>) {
   }
 
   async function upsertList(body: any): Promise<{id: string}> {
-    console.log(body)
     const result = await selectedStore.upsert(LISTS_TABLE, body);
     invalidateTable(LISTS_TABLE);
     return result;
