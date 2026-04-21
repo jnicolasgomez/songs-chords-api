@@ -1,5 +1,4 @@
 import * as store from "../../store/mongoStore.ts";
-import { invalidateTable } from "../../store/mongoStore.ts";
 import type { Store } from "../../songs/types/types.ts";
 import type { List } from "../types/types.ts";
 
@@ -47,7 +46,6 @@ export default function (injectedStore?: Store<List>) {
 
   async function upsertList(body: any): Promise<{id: string}> {
     const result = await selectedStore.upsert(LISTS_TABLE, body);
-    invalidateTable(LISTS_TABLE);
     return result;
   }
 
@@ -61,7 +59,6 @@ export default function (injectedStore?: Store<List>) {
     const shared_with: string[] = list.shared_with ?? [];
     if (!shared_with.includes(targetUid)) shared_with.push(targetUid);
     const result = await selectedStore.upsert(LISTS_TABLE, { ...list, shared_with });
-    invalidateTable(LISTS_TABLE);
     return result;
   }
 
@@ -70,7 +67,6 @@ export default function (injectedStore?: Store<List>) {
     if (!list) throw Object.assign(new Error("List not found"), { status: 404 });
     const shared_with = (list.shared_with ?? []).filter((uid: string) => uid !== targetUid);
     const result = await selectedStore.upsert(LISTS_TABLE, { ...list, shared_with });
-    invalidateTable(LISTS_TABLE);
     return result;
   }
 
@@ -85,7 +81,6 @@ export default function (injectedStore?: Store<List>) {
     }
     const updated = { ...list, songs };
     await selectedStore.upsert(LISTS_TABLE, updated);
-    invalidateTable(LISTS_TABLE);
     return updated;
   }
 

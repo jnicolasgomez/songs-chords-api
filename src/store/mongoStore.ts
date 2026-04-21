@@ -3,19 +3,12 @@ import type { Document, Db, Collection, Filter, WithId} from 'mongodb'
 import config from "../../config.js";
 import { chunkArray } from "../utils/array.ts";
 import logger from "../utils/logger.ts";
+import { StoreCache } from "./cache.ts";
 
 const uri: string = config.mongoDb.uri;
 const client: MongoClient = new MongoClient(uri);
 let database: Db | undefined;
-
-const _cache = new Map<string, { data: any; expiresAt: number }>();
-const CACHE_TTL_MS = 60_000; // 1 minute
-
-export function invalidateTable(table: string): void {
-  for (const key of _cache.keys()) {
-    if (key.startsWith(`${table}:`)) _cache.delete(key);
-  }
-}
+const cache = new StoreCache();
 
 connect();
 
@@ -39,8 +32,8 @@ async function list<T extends Document = Document>(table: string, fields?: strin
     throw new Error("Database not connected");
   }
   const cacheKey = `${table}:list:${fields?.join(',') ?? ''}`;
-  const hit = _cache.get(cacheKey);
-  if (hit && hit.expiresAt > Date.now()) return hit.data;
+  const cached = cache.get<T[]>(cacheKey);
+  if (cached) return cached;
 
   const collection: Collection<T> = database.collection<T>(table);
   let dbQuery = collection.find({});
@@ -50,7 +43,7 @@ async function list<T extends Document = Document>(table: string, fields?: strin
     dbQuery = dbQuery.project(projection);
   }
   const result: WithId<T>[] = await dbQuery.toArray();
-  _cache.set(cacheKey, { data: result as T[], expiresAt: Date.now() + CACHE_TTL_MS });
+  cache.set(cacheKey, result as T[]);
   return result as T[];
 }
 
@@ -81,6 +74,7 @@ async function upsert<T extends Document = Document>(table: string, data: T & { 
   const options = { upsert: true };
   const { _id, ...dataWithoutId } = data as any;
   const result = await collection.replaceOne(filter, dataWithoutId as unknown as T, options);
+  cache.invalidate(table);
   return { id: data.id };
 }
 
@@ -94,6 +88,7 @@ async function remove(table: string, id: string): Promise<number> {
     ? { _id: new ObjectId(id) }
     : { _id: id as unknown as ObjectId };
   const result = await collection.deleteOne(filter);
+  cache.invalidate(table);
   return result.deletedCount;
 }
 
@@ -102,12 +97,12 @@ async function query<T extends Document = Document>(table: string, q: Filter<T>)
     throw new Error("Database not connected");
   }
   const cacheKey = `${table}:query:${JSON.stringify(q)}`;
-  const hit = _cache.get(cacheKey);
-  if (hit && hit.expiresAt > Date.now()) return hit.data;
+  const cached = cache.get<T[]>(cacheKey);
+  if (cached) return cached;
 
   const collection: Collection<T> = database.collection<T>(table);
   const result: WithId<T>[] = await collection.find(q).toArray();
-  _cache.set(cacheKey, { data: result as T[], expiresAt: Date.now() + CACHE_TTL_MS });
+  cache.set(cacheKey, result as T[]);
   return result as T[];
 }
 

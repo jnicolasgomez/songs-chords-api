@@ -4,15 +4,10 @@ import type { Firestore, DocumentData, WhereFilterOp } from '@google-cloud/fires
 import { chunkArray } from "../utils/array.ts";
 import type { Song } from "../songs/types/types";
 import logger from "../utils/logger.ts";
+import { StoreCache } from "./cache.ts";
 
 let db: Firestore | null = null;
-
-const _cache = new Map<string, { data: any; expiresAt: number }>();
-const CACHE_TTL_MS = 60_000; // 1 minute
-
-export function invalidateCache(key: string): void {
-  _cache.delete(key);
-}
+const cache = new StoreCache();
 
 /**
  * Connects to Firestore using Firebase Admin SDK.
@@ -40,15 +35,15 @@ export async function disconnect(): Promise<void> {
  */
 export async function list(collection: string): Promise<Song[]> {
   const key = `list:${collection}`;
-  const hit = _cache.get(key);
-  if (hit && hit.expiresAt > Date.now()) return hit.data;
+  const cached = cache.get<Song[]>(key);
+  if (cached) return cached;
 
   await connect();
   let response: Song[] = [];
   try {
     const snapshot = await db!.collection(collection).get();
     response = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Song));
-    _cache.set(key, { data: response, expiresAt: Date.now() + CACHE_TTL_MS });
+    cache.set(key, response);
   } catch (err) {
     console.error(err);
   }
@@ -62,13 +57,13 @@ export async function list(collection: string): Promise<Song[]> {
  */
 export async function listPublic(collection: string): Promise<Song[]> {
   const key = `listPublic:${collection}`;
-  const hit = _cache.get(key);
-  if (hit && hit.expiresAt > Date.now()) return hit.data;
+  const cached = cache.get<Song[]>(key);
+  if (cached) return cached;
 
   let response: Song[] = [];
   try {
     response = await query(collection, [["public", "==", true]]);
-    _cache.set(key, { data: response, expiresAt: Date.now() + CACHE_TTL_MS });
+    cache.set(key, response);
   } catch (err) {
     console.error(err);
   }
@@ -146,6 +141,7 @@ export async function upsert(collection: string, data: Song): Promise<{id: strin
     });
     // Update the document with its ID
     await docRef.update({ id: docRef.id });
+    cache.invalidate(collection);
     console.log(`Document ${docRef.id} created in ${collection}`);
     return { id: docRef.id };
   }
@@ -153,6 +149,7 @@ export async function upsert(collection: string, data: Song): Promise<{id: strin
     ...data,
     id: data.id
   }, { merge: true });
+  cache.invalidate(collection);
   console.log(`Document ${data.id} upserted in ${collection}`);
   return { id: data.id };
 }
@@ -166,6 +163,7 @@ export async function upsert(collection: string, data: Song): Promise<{id: strin
 export async function remove(collection: string, id: string): Promise<void> {
   await connect();
   await db!.collection(collection).doc(id).delete();
+  cache.invalidate(collection);
   console.log(`Document ${id} removed from ${collection}`);
 }
 
