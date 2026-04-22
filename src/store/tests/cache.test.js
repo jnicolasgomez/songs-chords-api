@@ -22,7 +22,9 @@ describe("StoreCache", () => {
 
     // wait for expiry
     const start = Date.now();
-    while (Date.now() - start < 5) {} // busy-wait 5ms
+    while (Date.now() - start < 5) {
+      /* busy-wait 5ms */
+    }
 
     expect(short.get("songs:list")).toBeUndefined();
     // a second get should also miss (entry was deleted, not just skipped)
