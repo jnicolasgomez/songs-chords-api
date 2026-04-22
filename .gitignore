@@ -6,6 +6,7 @@ config.js
 gha-creds-*.json
 /dist
 migration/
+scripts/enrich-artist-images.mjs
 app.yaml
 bandmate.code-workspace
 scripts/

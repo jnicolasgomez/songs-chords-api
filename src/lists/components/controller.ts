@@ -45,7 +45,8 @@ export default function (injectedStore?: Store<List>) {
   }
 
   async function upsertList(body: any): Promise<{id: string}> {
-    return selectedStore.upsert(LISTS_TABLE, body);
+    const result = await selectedStore.upsert(LISTS_TABLE, body);
+    return result;
   }
 
   async function listsByBand(bandId: string): Promise<List[]> {
@@ -57,14 +58,16 @@ export default function (injectedStore?: Store<List>) {
     if (!list) throw Object.assign(new Error("List not found"), { status: 404 });
     const shared_with: string[] = list.shared_with ?? [];
     if (!shared_with.includes(targetUid)) shared_with.push(targetUid);
-    return selectedStore.upsert(LISTS_TABLE, { ...list, shared_with });
+    const result = await selectedStore.upsert(LISTS_TABLE, { ...list, shared_with });
+    return result;
   }
 
   async function unshareList(listId: string, targetUid: string): Promise<{ id: string }> {
     const list = await selectedStore.get(LISTS_TABLE, listId);
     if (!list) throw Object.assign(new Error("List not found"), { status: 404 });
     const shared_with = (list.shared_with ?? []).filter((uid: string) => uid !== targetUid);
-    return selectedStore.upsert(LISTS_TABLE, { ...list, shared_with });
+    const result = await selectedStore.upsert(LISTS_TABLE, { ...list, shared_with });
+    return result;
   }
 
   async function addSongToList(listId: string, songId: string): Promise<List> {
