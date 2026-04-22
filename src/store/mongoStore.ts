@@ -8,7 +8,7 @@ import { StoreCache } from "./cache.ts";
 const uri: string = config.mongoDb.uri;
 const client: MongoClient = new MongoClient(uri);
 let database: Db | undefined;
-const cache = new StoreCache();
+const cache = new StoreCache("mongo");
 
 connect();
 

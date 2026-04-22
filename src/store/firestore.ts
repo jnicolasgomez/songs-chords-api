@@ -7,7 +7,7 @@ import logger from "../utils/logger.ts";
 import { StoreCache } from "./cache.ts";
 
 let db: Firestore | null = null;
-const cache = new StoreCache();
+const cache = new StoreCache("firestore");
 
 /**
  * Connects to Firestore using Firebase Admin SDK.
@@ -34,7 +34,7 @@ export async function disconnect(): Promise<void> {
  * @returns {Promise<Song[]>} - A list of documents.
  */
 export async function list(collection: string): Promise<Song[]> {
-  const key = `list:${collection}`;
+  const key = `${collection}:list`;
   const cached = cache.get<Song[]>(key);
   if (cached) return cached;
 
@@ -56,7 +56,7 @@ export async function list(collection: string): Promise<Song[]> {
  * @returns {Promise<DocumentData[]>} - A list of documents.
  */
 export async function listPublic(collection: string): Promise<Song[]> {
-  const key = `listPublic:${collection}`;
+  const key = `${collection}:listPublic`;
   const cached = cache.get<Song[]>(key);
   if (cached) return cached;
 
