@@ -1,43 +1,13 @@
 import controllerFactory from "../controller.ts";
 import { ListSchema } from "../../types/types.ts";
+import type { List } from "../../types/types.ts";
+import { makeMockStore } from "./mockStore.ts";
 
-function makeMockStore(seed = []) {
-  const data = new Map(seed.map((l) => [l.id, l]));
-  return {
-    async list() {
-      return [...data.values()];
-    },
-    async get(_table, id) {
-      return data.get(id) ?? null;
-    },
-    async upsert(_table, body) {
-      data.set(body.id, body);
-      return { id: body.id };
-    },
-    async query(_table, filter) {
-      if (filter && filter.id) {
-        const hit = data.get(filter.id);
-        return hit ? [hit] : [];
-      }
-      return [...data.values()];
-    },
-    async byUserId() {
-      return [];
-    },
-    async listPublic() {
-      return [];
-    },
-    async byIdsArray() {
-      return [];
-    },
-    async sharedWithUser() {
-      return [];
-    },
-    _data: data,
-  };
-}
+// Prevent mongoStore from calling connect() at import time, which logs async
+// errors after tests finish ("Cannot log after tests are done").
+jest.mock("../../../store/mongoStore.ts", () => ({}));
 
-const baseList = {
+const baseList: List = {
   id: "list-1",
   title: "Demo",
   user_uid: "u1",
@@ -98,7 +68,7 @@ describe("upsertList", () => {
       ],
     });
 
-    const stored = store._data.get("list-1");
+    const stored = store._data.get("list-1")!;
     expect(stored.songs).toEqual(["s1", "s2"]);
     expect(stored.items).toHaveLength(4);
   });
@@ -116,7 +86,7 @@ describe("upsertList", () => {
       ],
     });
 
-    expect(store._data.get("list-1").songs).toEqual(["s1", "s2"]);
+    expect(store._data.get("list-1")!.songs).toEqual(["s1", "s2"]);
   });
 
   test("preserves songs as-is for legacy payloads without items", async () => {
@@ -128,7 +98,7 @@ describe("upsertList", () => {
       songs: ["s1", "s2"],
     });
 
-    const stored = store._data.get("list-1");
+    const stored = store._data.get("list-1")!;
     expect(stored.songs).toEqual(["s1", "s2"]);
     expect(stored.items).toBeUndefined();
   });
@@ -141,7 +111,7 @@ describe("addSongToList", () => {
 
     await controller.addSongToList("list-1", "s2");
 
-    const stored = store._data.get("list-1");
+    const stored = store._data.get("list-1")!;
     expect(stored.songs).toEqual(["s1", "s2"]);
     expect(stored.items).toBeUndefined();
   });
@@ -161,7 +131,7 @@ describe("addSongToList", () => {
 
     await controller.addSongToList("list-1", "s2");
 
-    const stored = store._data.get("list-1");
+    const stored = store._data.get("list-1")!;
     expect(stored.songs).toEqual(["s1", "s2"]);
     expect(stored.items).toEqual([
       { type: "set", label: "Opening" },
@@ -182,7 +152,7 @@ describe("addSongToList", () => {
 
     await controller.addSongToList("list-1", "s1");
 
-    const stored = store._data.get("list-1");
+    const stored = store._data.get("list-1")!;
     expect(stored.songs).toEqual(["s1"]);
     expect(stored.items).toEqual([{ type: "song", songId: "s1" }]);
   });
