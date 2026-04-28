@@ -4,8 +4,12 @@ import { ListSchema } from "../../types/types.ts";
 function makeMockStore(seed = []) {
   const data = new Map(seed.map((l) => [l.id, l]));
   return {
-    async list() { return [...data.values()]; },
-    async get(_table, id) { return data.get(id) ?? null; },
+    async list() {
+      return [...data.values()];
+    },
+    async get(_table, id) {
+      return data.get(id) ?? null;
+    },
     async upsert(_table, body) {
       data.set(body.id, body);
       return { id: body.id };
@@ -17,10 +21,18 @@ function makeMockStore(seed = []) {
       }
       return [...data.values()];
     },
-    async byUserId() { return []; },
-    async listPublic() { return []; },
-    async byIdsArray() { return []; },
-    async sharedWithUser() { return []; },
+    async byUserId() {
+      return [];
+    },
+    async listPublic() {
+      return [];
+    },
+    async byIdsArray() {
+      return [];
+    },
+    async sharedWithUser() {
+      return [];
+    },
     _data: data,
   };
 }
@@ -180,7 +192,7 @@ describe("addSongToList", () => {
     const controller = controllerFactory(store);
 
     await expect(controller.addSongToList("missing", "s1")).rejects.toThrow(
-      /missing/
+      /missing/,
     );
   });
 });
