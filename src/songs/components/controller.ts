@@ -1,6 +1,7 @@
 import * as store from "../../store/firestore.ts";
 import type { Song, Store } from "../types/types.ts";
 import artistsController from "../../artists/components/index.ts";
+import { assertCanEdit, assertOwner } from "../../middleware/authz.ts";
 
 
 const SONGS_TABLE = process.env.SONGS_TABLE_NAME || "songs";
@@ -73,19 +74,37 @@ export default function (selectedStore?: Store<Song>) {
     return injectedStore.query(SONGS_TABLE, [["band_id", "==", bandId]]);
   }
 
-  async function upsertSong(body: any): Promise<{id: string}> {
-    const result = await injectedStore.upsert(SONGS_TABLE, body);
-    if (body.artist) {
-      await artistsController.upsertArtist(body.artist);
+  async function upsertSong(body: any, uid: string): Promise<{id: string}> {
+    const incoming: any = { ...body };
+    if (incoming.id) {
+      const existing = await injectedStore.get(SONGS_TABLE, incoming.id);
+      if (existing) {
+        assertCanEdit(existing, uid);
+        incoming.user_uid = existing.user_uid;
+        incoming.shared_with = existing.shared_with;
+      } else {
+        incoming.user_uid = uid;
+        delete incoming.shared_with;
+      }
+    } else {
+      incoming.user_uid = uid;
+      delete incoming.shared_with;
+    }
+    const result = await injectedStore.upsert(SONGS_TABLE, incoming);
+    if (incoming.artist) {
+      await artistsController.upsertArtist(incoming.artist);
     }
     return result;
   }
 
   const ALLOWED_PATCH_FIELDS = [
-    'title', 'artist', 'chords-text', 'tags', 'spotifyUrl', 'youtubeUrl', 'public', 'details', 'shared_with'
+    'title', 'artist', 'chords-text', 'tags', 'spotifyUrl', 'youtubeUrl', 'public', 'details'
   ] as const;
 
-  async function patchSong(id: string, body: Partial<Song>): Promise<{id: string}> {
+  async function patchSong(id: string, body: Partial<Song>, uid: string): Promise<{id: string}> {
+    const existing = await injectedStore.get(SONGS_TABLE, id);
+    if (!existing) throw Object.assign(new Error("Song not found"), { status: 404 });
+    assertCanEdit(existing, uid);
     const filteredBody: Partial<Song> = {};
     for (const field of ALLOWED_PATCH_FIELDS) {
       if (field in body) {
@@ -99,18 +118,20 @@ export default function (selectedStore?: Store<Song>) {
     return result;
   }
 
-  async function shareSong(songId: string, targetUid: string): Promise<{ id: string }> {
+  async function shareSong(songId: string, targetUid: string, uid: string): Promise<{ id: string }> {
     const song = await injectedStore.get(SONGS_TABLE, songId);
     if (!song) throw Object.assign(new Error("Song not found"), { status: 404 });
+    assertOwner(song, uid);
     const shared_with: string[] = song.shared_with ?? [];
     if (!shared_with.includes(targetUid)) shared_with.push(targetUid);
     return injectedStore.upsert(SONGS_TABLE, { ...song, shared_with });
   }
 
-  async function unshareSong(songId: string, targetUid: string): Promise<{ id: string }> {
+  async function unshareSong(songId: string, targetUid: string, uid: string): Promise<{ id: string }> {
     const song = await injectedStore.get(SONGS_TABLE, songId);
     if (!song) throw Object.assign(new Error("Song not found"), { status: 404 });
-    const shared_with = (song.shared_with ?? []).filter((uid: string) => uid !== targetUid);
+    assertOwner(song, uid);
+    const shared_with = (song.shared_with ?? []).filter((u: string) => u !== targetUid);
     return injectedStore.upsert(SONGS_TABLE, { ...song, shared_with });
   }
 

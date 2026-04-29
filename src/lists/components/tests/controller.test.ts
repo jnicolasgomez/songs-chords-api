@@ -7,10 +7,13 @@ import { makeMockStore } from "./mockStore.ts";
 // errors after tests finish ("Cannot log after tests are done").
 jest.mock("../../../store/mongoStore.ts", () => ({}));
 
+const OWNER = "u1";
+const OTHER = "u2";
+
 const baseList: List = {
   id: "list-1",
   title: "Demo",
-  user_uid: "u1",
+  user_uid: OWNER,
   private: false,
 };
 
@@ -55,18 +58,21 @@ describe("ListSchema", () => {
 
 describe("upsertList", () => {
   test("derives songs from items when items is provided", async () => {
-    const store = makeMockStore();
+    const store = makeMockStore([{ ...baseList }]);
     const controller = controllerFactory(store);
 
-    await controller.upsertList({
-      ...baseList,
-      items: [
-        { type: "set", label: "Opening" },
-        { type: "song", songId: "s1" },
-        { type: "pause", minutes: 10 },
-        { type: "song", songId: "s2" },
-      ],
-    });
+    await controller.upsertList(
+      {
+        ...baseList,
+        items: [
+          { type: "set", label: "Opening" },
+          { type: "song", songId: "s1" },
+          { type: "pause", minutes: 10 },
+          { type: "song", songId: "s2" },
+        ],
+      },
+      OWNER,
+    );
 
     const stored = store._data.get("list-1")!;
     expect(stored.songs).toEqual(["s1", "s2"]);
@@ -74,33 +80,105 @@ describe("upsertList", () => {
   });
 
   test("overwrites incoming songs with values derived from items", async () => {
-    const store = makeMockStore();
+    const store = makeMockStore([{ ...baseList }]);
     const controller = controllerFactory(store);
 
-    await controller.upsertList({
-      ...baseList,
-      songs: ["stale-id"],
-      items: [
-        { type: "song", songId: "s1" },
-        { type: "song", songId: "s2" },
-      ],
-    });
+    await controller.upsertList(
+      {
+        ...baseList,
+        songs: ["stale-id"],
+        items: [
+          { type: "song", songId: "s1" },
+          { type: "song", songId: "s2" },
+        ],
+      },
+      OWNER,
+    );
 
     expect(store._data.get("list-1")!.songs).toEqual(["s1", "s2"]);
   });
 
   test("preserves songs as-is for legacy payloads without items", async () => {
-    const store = makeMockStore();
+    const store = makeMockStore([{ ...baseList }]);
     const controller = controllerFactory(store);
 
-    await controller.upsertList({
-      ...baseList,
-      songs: ["s1", "s2"],
-    });
+    await controller.upsertList(
+      {
+        ...baseList,
+        songs: ["s1", "s2"],
+      },
+      OWNER,
+    );
 
     const stored = store._data.get("list-1")!;
     expect(stored.songs).toEqual(["s1", "s2"]);
     expect(stored.items).toBeUndefined();
+  });
+
+  test("forces user_uid to authenticated uid on create", async () => {
+    const store = makeMockStore();
+    const controller = controllerFactory(store);
+
+    await controller.upsertList(
+      { title: "New", user_uid: OTHER, private: false, id: "new-1" },
+      OWNER,
+    );
+
+    expect(store._data.get("new-1")!.user_uid).toBe(OWNER);
+  });
+
+  test("strips client-supplied shared_with on create", async () => {
+    const store = makeMockStore();
+    const controller = controllerFactory(store);
+
+    await controller.upsertList(
+      {
+        title: "New",
+        user_uid: OWNER,
+        private: false,
+        id: "new-2",
+        shared_with: ["sneaky"],
+      },
+      OWNER,
+    );
+
+    expect(store._data.get("new-2")!.shared_with).toBeUndefined();
+  });
+
+  test("preserves existing user_uid when an editor updates", async () => {
+    const store = makeMockStore([{ ...baseList, shared_with: [OTHER] }]);
+    const controller = controllerFactory(store);
+
+    await controller.upsertList(
+      { ...baseList, title: "Renamed", user_uid: OTHER },
+      OTHER,
+    );
+
+    const stored = store._data.get("list-1")!;
+    expect(stored.user_uid).toBe(OWNER);
+    expect(stored.title).toBe("Renamed");
+    expect(stored.shared_with).toEqual([OTHER]);
+  });
+
+  test("rejects edits from a non-owner, non-shared user", async () => {
+    const store = makeMockStore([{ ...baseList }]);
+    const controller = controllerFactory(store);
+
+    await expect(
+      controller.upsertList({ ...baseList, title: "Hijacked" }, OTHER),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  test("ignores client-supplied shared_with on update", async () => {
+    const store = makeMockStore([{ ...baseList, shared_with: [OTHER] }]);
+    const controller = controllerFactory(store);
+
+    await controller.upsertList(
+      { ...baseList, shared_with: ["someone-new"] },
+      OTHER,
+    );
+
+    expect(store._data.get("list-1")!.shared_with).toEqual([OTHER]);
   });
 });
 
@@ -109,7 +187,7 @@ describe("addSongToList", () => {
     const store = makeMockStore([{ ...baseList, songs: ["s1"] }]);
     const controller = controllerFactory(store);
 
-    await controller.addSongToList("list-1", "s2");
+    await controller.addSongToList("list-1", "s2", OWNER);
 
     const stored = store._data.get("list-1")!;
     expect(stored.songs).toEqual(["s1", "s2"]);
@@ -129,7 +207,7 @@ describe("addSongToList", () => {
     ]);
     const controller = controllerFactory(store);
 
-    await controller.addSongToList("list-1", "s2");
+    await controller.addSongToList("list-1", "s2", OWNER);
 
     const stored = store._data.get("list-1")!;
     expect(stored.songs).toEqual(["s1", "s2"]);
@@ -150,7 +228,7 @@ describe("addSongToList", () => {
     ]);
     const controller = controllerFactory(store);
 
-    await controller.addSongToList("list-1", "s1");
+    await controller.addSongToList("list-1", "s1", OWNER);
 
     const stored = store._data.get("list-1")!;
     expect(stored.songs).toEqual(["s1"]);
@@ -161,8 +239,57 @@ describe("addSongToList", () => {
     const store = makeMockStore();
     const controller = controllerFactory(store);
 
-    await expect(controller.addSongToList("missing", "s1")).rejects.toThrow(
+    await expect(controller.addSongToList("missing", "s1", OWNER)).rejects.toThrow(
       /missing/,
     );
+  });
+
+  test("rejects when the caller is not owner or shared", async () => {
+    const store = makeMockStore([{ ...baseList, songs: ["s1"] }]);
+    const controller = controllerFactory(store);
+
+    await expect(
+      controller.addSongToList("list-1", "s2", OTHER),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  test("allows shared users to add songs", async () => {
+    const store = makeMockStore([
+      { ...baseList, songs: ["s1"], shared_with: [OTHER] },
+    ]);
+    const controller = controllerFactory(store);
+
+    await controller.addSongToList("list-1", "s2", OTHER);
+
+    expect(store._data.get("list-1")!.songs).toEqual(["s1", "s2"]);
+  });
+});
+
+describe("shareList / unshareList", () => {
+  test("only the owner can add a collaborator", async () => {
+    const store = makeMockStore([{ ...baseList, shared_with: [OTHER] }]);
+    const controller = controllerFactory(store);
+
+    await expect(
+      controller.shareList("list-1", "u3", OTHER),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  test("owner can add a collaborator", async () => {
+    const store = makeMockStore([{ ...baseList }]);
+    const controller = controllerFactory(store);
+
+    await controller.shareList("list-1", "u3", OWNER);
+
+    expect(store._data.get("list-1")!.shared_with).toEqual(["u3"]);
+  });
+
+  test("only the owner can remove a collaborator", async () => {
+    const store = makeMockStore([{ ...baseList, shared_with: [OTHER] }]);
+    const controller = controllerFactory(store);
+
+    await expect(
+      controller.unshareList("list-1", OTHER, OTHER),
+    ).rejects.toMatchObject({ status: 403 });
   });
 });

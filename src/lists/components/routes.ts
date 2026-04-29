@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
 import { conditionalAuth, requireAuth } from "../../middleware/session.ts";
+import { getUid } from "../../middleware/authz.ts";
 import { writeLimiter } from "../../middleware/rateLimit.ts";
 import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
@@ -97,7 +98,7 @@ type ListRequest = Request & {
  */
 router.post("/lists", requireAuth, writeLimiter, validate(ListSchema), (req: Request, res: Response, next: NextFunction) => {
   controller
-    .upsertList(req.body)
+    .upsertList(req.body, getUid(req))
     .then((item) => {
       success(req, res, item, 201);
     })
@@ -228,13 +229,13 @@ router.get("/lists/:id", (req: Request, res: Response, next: NextFunction) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/lists/:id/songs", conditionalAuth, writeLimiter, (req: Request, res: Response, next: NextFunction) => {
+router.post("/lists/:id/songs", requireAuth, writeLimiter, (req: Request, res: Response, next: NextFunction) => {
   const { songId } = req.body;
   if (!songId) {
     return next(Object.assign(new Error("songId is required"), { status: 400 }));
   }
   controller
-    .addSongToList(req.params.id, songId)
+    .addSongToList(req.params.id, songId, getUid(req))
     .then((item) => {
       success(req, res, item, 200);
     })
@@ -304,7 +305,7 @@ router.post("/lists/:id/collaborators", requireAuth, writeLimiter, async (req: R
   }
   try {
     const { uid } = await usersController.lookupByEmail(email);
-    const result = await controller.shareList(req.params.id, uid);
+    const result = await controller.shareList(req.params.id, uid, getUid(req));
     success(req, res, result, 200);
   } catch (err) {
     next(err);
@@ -357,7 +358,7 @@ router.post("/lists/:id/collaborators", requireAuth, writeLimiter, async (req: R
  */
 router.delete("/lists/:id/collaborators/:uid", requireAuth, (req: Request, res: Response, next: NextFunction) => {
   controller
-    .unshareList(req.params.id, req.params.uid)
+    .unshareList(req.params.id, req.params.uid, getUid(req))
     .then((item) => success(req, res, item, 200))
     .catch(next);
 });

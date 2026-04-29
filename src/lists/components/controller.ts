@@ -1,6 +1,7 @@
 import * as store from "../../store/mongoStore.ts";
 import type { Store } from "../../songs/types/types.ts";
 import type { List, ListItem } from "../types/types.ts";
+import { assertCanEdit, assertOwner } from "../../middleware/authz.ts";
 
 function songIdsFromItems(items: ListItem[]): string[] {
   return items
@@ -50,10 +51,22 @@ export default function (injectedStore?: Store<List>) {
     return lists.reverse();
   }
 
-  async function upsertList(body: any): Promise<{id: string}> {
-    const incoming = { ...body };
+  async function upsertList(body: any, uid: string): Promise<{id: string}> {
+    const incoming: any = { ...body };
     if (Array.isArray(incoming.items)) {
       incoming.songs = songIdsFromItems(incoming.items as ListItem[]);
+    }
+    let existing: List | null = null;
+    if (incoming.id) {
+      existing = await selectedStore.get(LISTS_TABLE, incoming.id);
+    }
+    if (existing) {
+      assertCanEdit(existing, uid);
+      incoming.user_uid = existing.user_uid;
+      incoming.shared_with = existing.shared_with;
+    } else {
+      incoming.user_uid = uid;
+      delete incoming.shared_with;
     }
     const result = await selectedStore.upsert(LISTS_TABLE, incoming);
     return result;
@@ -63,28 +76,31 @@ export default function (injectedStore?: Store<List>) {
     return selectedStore.query(LISTS_TABLE, { band_id: bandId });
   }
 
-  async function shareList(listId: string, targetUid: string): Promise<{ id: string }> {
+  async function shareList(listId: string, targetUid: string, uid: string): Promise<{ id: string }> {
     const list = await selectedStore.get(LISTS_TABLE, listId);
     if (!list) throw Object.assign(new Error("List not found"), { status: 404 });
+    assertOwner(list, uid);
     const shared_with: string[] = list.shared_with ?? [];
     if (!shared_with.includes(targetUid)) shared_with.push(targetUid);
     const result = await selectedStore.upsert(LISTS_TABLE, { ...list, shared_with });
     return result;
   }
 
-  async function unshareList(listId: string, targetUid: string): Promise<{ id: string }> {
+  async function unshareList(listId: string, targetUid: string, uid: string): Promise<{ id: string }> {
     const list = await selectedStore.get(LISTS_TABLE, listId);
     if (!list) throw Object.assign(new Error("List not found"), { status: 404 });
-    const shared_with = (list.shared_with ?? []).filter((uid: string) => uid !== targetUid);
+    assertOwner(list, uid);
+    const shared_with = (list.shared_with ?? []).filter((u: string) => u !== targetUid);
     const result = await selectedStore.upsert(LISTS_TABLE, { ...list, shared_with });
     return result;
   }
 
-  async function addSongToList(listId: string, songId: string): Promise<List> {
+  async function addSongToList(listId: string, songId: string, uid: string): Promise<List> {
     const list = await selectedStore.get(LISTS_TABLE, listId);
     if (!list) {
       throw new Error(`List ${listId} not found`);
     }
+    assertCanEdit(list, uid);
     const songs: string[] = list.songs ?? [];
     if (!songs.includes(songId)) {
       songs.push(songId);
