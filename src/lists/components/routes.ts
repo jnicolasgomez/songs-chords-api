@@ -53,6 +53,28 @@ type ListRequest = Request & {
  *                 type: array
  *                 items:
  *                   type: string
+ *                 description: Legacy flat array of song IDs. Derived from `items` when both are sent.
+ *               items:
+ *                 type: array
+ *                 description: Ordered setlist items (songs, set markers, pauses).
+ *                 items:
+ *                   oneOf:
+ *                     - type: object
+ *                       required: [type, songId]
+ *                       properties:
+ *                         type: { type: string, enum: [song] }
+ *                         songId: { type: string }
+ *                     - type: object
+ *                       required: [type, label]
+ *                       properties:
+ *                         type: { type: string, enum: [set] }
+ *                         label: { type: string }
+ *                     - type: object
+ *                       required: [type, minutes]
+ *                       properties:
+ *                         type: { type: string, enum: [pause] }
+ *                         minutes: { type: number }
+ *                         label: { type: string }
  *     responses:
  *       201:
  *         description: List created/updated

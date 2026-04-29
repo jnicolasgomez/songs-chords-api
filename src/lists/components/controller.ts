@@ -1,6 +1,12 @@
 import * as store from "../../store/mongoStore.ts";
 import type { Store } from "../../songs/types/types.ts";
-import type { List } from "../types/types.ts";
+import type { List, ListItem } from "../types/types.ts";
+
+function songIdsFromItems(items: ListItem[]): string[] {
+  return items
+    .filter((it): it is Extract<ListItem, { type: "song" }> => it.type === "song")
+    .map((it) => it.songId);
+}
 
 const LISTS_TABLE = process.env.LISTS_TABLE_NAME || "lists";
 
@@ -45,7 +51,11 @@ export default function (injectedStore?: Store<List>) {
   }
 
   async function upsertList(body: any): Promise<{id: string}> {
-    const result = await selectedStore.upsert(LISTS_TABLE, body);
+    const incoming = { ...body };
+    if (Array.isArray(incoming.items)) {
+      incoming.songs = songIdsFromItems(incoming.items as ListItem[]);
+    }
+    const result = await selectedStore.upsert(LISTS_TABLE, incoming);
     return result;
   }
 
@@ -79,7 +89,16 @@ export default function (injectedStore?: Store<List>) {
     if (!songs.includes(songId)) {
       songs.push(songId);
     }
-    const updated = { ...list, songs };
+    const existingItems = Array.isArray(list.items) ? (list.items as ListItem[]) : null;
+    const updated: List = { ...list, songs };
+    if (existingItems) {
+      const alreadyInItems = existingItems.some(
+        (it) => it.type === "song" && it.songId === songId
+      );
+      updated.items = alreadyInItems
+        ? existingItems
+        : [...existingItems, { type: "song", songId }];
+    }
     await selectedStore.upsert(LISTS_TABLE, updated);
     return updated;
   }
