@@ -27,7 +27,7 @@ export type ListItem = z.infer<typeof ListItemSchema>;
 export const ListSchema = z.looseObject({
   id: z.string().optional(),
   title: z.string(),
-  user_uid: z.string(),
+  user_uid: z.string().optional(),
   private: z.boolean(),
   songs: z.array(z.string()).optional(),
   items: z.array(ListItemSchema).optional(),

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
 import { conditionalAuth, requireAuth } from "../../middleware/session.ts";
+import { getUid } from "../../middleware/authz.ts";
 import { writeLimiter } from "../../middleware/rateLimit.ts";
 import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
@@ -53,7 +54,7 @@ type SongRequest = Request & {
  */
 router.post("/songs", requireAuth, writeLimiter, validate(SongSchema), (req: Request, res: Response, next: NextFunction) => {
   controller
-    .upsertSong(req.body)
+    .upsertSong(req.body, getUid(req))
     .then((item) => {
       success(req, res, item, 201);
     })
@@ -239,9 +240,9 @@ router.get("/songs/artist/:artist", (req: Request, res: Response, next: NextFunc
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put("/songs/:id", conditionalAuth, writeLimiter, (req: Request, res: Response, next: NextFunction) => {
+router.put("/songs/:id", requireAuth, writeLimiter, (req: Request, res: Response, next: NextFunction) => {
   controller
-    .patchSong(req.params.id, req.body)
+    .patchSong(req.params.id, req.body, getUid(req))
     .then((item) => {
       success(req, res, item, 200);
     })
@@ -373,7 +374,7 @@ router.post("/songs/:id/collaborators", requireAuth, writeLimiter, async (req: R
   }
   try {
     const { uid } = await usersController.lookupByEmail(email);
-    const result = await controller.shareSong(req.params.id, uid);
+    const result = await controller.shareSong(req.params.id, uid, getUid(req));
     success(req, res, result, 200);
   } catch (err) {
     next(err);
@@ -426,7 +427,7 @@ router.post("/songs/:id/collaborators", requireAuth, writeLimiter, async (req: R
  */
 router.delete("/songs/:id/collaborators/:uid", requireAuth, (req: Request, res: Response, next: NextFunction) => {
   controller
-    .unshareSong(req.params.id, req.params.uid)
+    .unshareSong(req.params.id, req.params.uid, getUid(req))
     .then((item) => success(req, res, item, 200))
     .catch(next);
 });
