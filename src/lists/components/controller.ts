@@ -63,7 +63,11 @@ export default function (injectedStore?: Store<List>) {
     if (existing) {
       assertCanEdit(existing, uid);
       incoming.user_uid = existing.user_uid;
-      incoming.shared_with = existing.shared_with;
+      if (Array.isArray(existing.shared_with)) {
+        incoming.shared_with = existing.shared_with;
+      } else {
+        delete incoming.shared_with;
+      }
     } else {
       incoming.user_uid = uid;
       delete incoming.shared_with;
