@@ -169,7 +169,7 @@ describe("upsertList", () => {
     ).rejects.toMatchObject({ status: 403 });
   });
 
-  test("ignores client-supplied shared_with on update", async () => {
+  test("editor cannot change shared_with via upsert", async () => {
     const store = makeMockStore([{ ...baseList, shared_with: [OTHER] }]);
     const controller = controllerFactory(store);
 
@@ -179,6 +179,18 @@ describe("upsertList", () => {
     );
 
     expect(store._data.get("list-1")!.shared_with).toEqual([OTHER]);
+  });
+
+  test("owner can update shared_with via upsert", async () => {
+    const store = makeMockStore([{ ...baseList, shared_with: [OTHER] }]);
+    const controller = controllerFactory(store);
+
+    await controller.upsertList(
+      { ...baseList, shared_with: [OTHER, "u3"] },
+      OWNER,
+    );
+
+    expect(store._data.get("list-1")!.shared_with).toEqual([OTHER, "u3"]);
   });
 });
 

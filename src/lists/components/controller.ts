@@ -63,7 +63,10 @@ export default function (injectedStore?: Store<List>) {
     if (existing) {
       assertCanEdit(existing, uid);
       incoming.user_uid = existing.user_uid;
-      if (Array.isArray(existing.shared_with)) {
+      const isOwner = existing.user_uid === uid;
+      if (isOwner && Array.isArray(incoming.shared_with)) {
+        // Owner-supplied shared_with wins.
+      } else if (Array.isArray(existing.shared_with)) {
         incoming.shared_with = existing.shared_with;
       } else {
         delete incoming.shared_with;

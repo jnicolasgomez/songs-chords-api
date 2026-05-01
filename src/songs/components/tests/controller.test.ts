@@ -72,6 +72,30 @@ describe("upsertSong", () => {
       controller.upsertSong({ ...baseSong, title: "Hijacked" }, OTHER),
     ).rejects.toMatchObject({ status: 403 });
   });
+
+  test("owner can update shared_with", async () => {
+    const store = makeMockStore([{ ...baseSong, shared_with: [OTHER] }]);
+    const controller = controllerFactory(store);
+
+    await controller.upsertSong(
+      { ...baseSong, shared_with: [OTHER, "u3"] },
+      OWNER,
+    );
+
+    expect(store._data.get("song-1")!.shared_with).toEqual([OTHER, "u3"]);
+  });
+
+  test("editor cannot change shared_with via upsert", async () => {
+    const store = makeMockStore([{ ...baseSong, shared_with: [OTHER] }]);
+    const controller = controllerFactory(store);
+
+    await controller.upsertSong(
+      { ...baseSong, shared_with: [OTHER, "u3"] },
+      OTHER,
+    );
+
+    expect(store._data.get("song-1")!.shared_with).toEqual([OTHER]);
+  });
 });
 
 describe("patchSong", () => {
