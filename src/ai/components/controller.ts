@@ -1,6 +1,17 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { AiChatRequest, AiChatResponse } from "../types/types.ts";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import type {
+  AiChatRequest,
+  AiChatResponse,
+  AiSongDetailsRequest,
+  AiSongDetailsResponse,
+} from "../types/types.ts";
+
+const TONE_VALUES = [
+  "C", "Cm", "C#", "C#m", "D", "Dm", "Eb", "Ebm",
+  "E", "Em", "F", "Fm", "F#", "F#m", "G", "Gm",
+  "G#", "G#m", "A", "Am", "Bb", "Bbm", "B", "Bm",
+];
 
 export default function () {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -101,5 +112,52 @@ Por ejemplo:
     return chatWithAnthropic(body);
   }
 
-  return { chat };
+  async function getSongDetails(
+    body: AiSongDetailsRequest
+  ): Promise<AiSongDetailsResponse> {
+    const model = genAI.getGenerativeModel({
+      model: process.env.GEMINI_MODEL || "gemini-2.5-flash-lite",
+      systemInstruction: `Eres una base de datos musical. Recibirás el título y artista de una canción y devolverás sus metadatos en JSON.
+Reglas estrictas:
+- Si NO conoces la canción con certeza, responde {"found": false}. No adivines nunca.
+- Si la conoces, responde {"found": true, "tone": "<tono>", "bpm": <entero>, "duration": "<m:ss>"}.
+- "tone" debe ser uno de: ${TONE_VALUES.join(", ")}. Usa el tono original de la grabación.
+- "bpm" es un entero (tempo de la grabación original).
+- "duration" es texto en formato m:ss o mm:ss (ej: "3:45", "10:02").
+- Omite los campos que no conozcas con certeza, pero mantén "found": true si reconoces la canción.`,
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            found: { type: SchemaType.BOOLEAN },
+            tone: { type: SchemaType.STRING, enum: TONE_VALUES, nullable: true },
+            bpm: { type: SchemaType.INTEGER, nullable: true },
+            duration: { type: SchemaType.STRING, nullable: true },
+          },
+          required: ["found"],
+        },
+      },
+    });
+
+    const prompt = `Título: ${body.title}\nArtista: ${body.artist}`;
+
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const parsed = JSON.parse(text) as AiSongDetailsResponse;
+      if (!parsed.found) return { found: false };
+      const out: AiSongDetailsResponse = { found: true };
+      if (parsed.tone) out.tone = parsed.tone;
+      if (typeof parsed.bpm === "number" && parsed.bpm > 0) out.bpm = parsed.bpm;
+      if (parsed.duration && /^\d{1,2}:\d{2}$/.test(parsed.duration)) {
+        out.duration = parsed.duration;
+      }
+      return out;
+    } catch {
+      return { found: false };
+    }
+  }
+
+  return { chat, getSongDetails };
 }

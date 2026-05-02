@@ -37,3 +37,17 @@ export const AiChatRequestSchema = z.object({
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 export type AiChatRequest = z.infer<typeof AiChatRequestSchema>;
 export type AiChatResponse = { reply: string };
+
+export const AiSongDetailsRequestSchema = z.object({
+  title: z.string().min(1).max(200),
+  artist: z.string().min(1).max(200),
+});
+
+export type AiSongDetailsRequest = z.infer<typeof AiSongDetailsRequestSchema>;
+
+export type AiSongDetailsResponse = {
+  found: boolean;
+  tone?: string;
+  bpm?: number;
+  duration?: string;
+};

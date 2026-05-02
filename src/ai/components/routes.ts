@@ -4,7 +4,10 @@ import { requireAuth } from "../../middleware/session.ts";
 import { aiChatLimiter } from "../../middleware/rateLimit.ts";
 import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
-import { AiChatRequestSchema } from "../types/types.ts";
+import {
+  AiChatRequestSchema,
+  AiSongDetailsRequestSchema,
+} from "../types/types.ts";
 import controller from "./index.ts";
 
 /**
@@ -71,6 +74,47 @@ router.post(
   (req: Request, res: Response, next: NextFunction) => {
     controller
       .chat(req.body)
+      .then((result) => success(req, res, result, 200))
+      .catch(next);
+  }
+);
+
+/**
+ * @swagger
+ * /api/ai/song-details:
+ *   post:
+ *     summary: Use AI to look up tone, bpm and duration for a song
+ *     tags: [AI]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, artist]
+ *             properties:
+ *               title:
+ *                 type: string
+ *               artist:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Song details (found=false if the song was not recognised)
+ *       400:
+ *         description: Validation error
+ *       403:
+ *         description: Invalid or missing JWT
+ */
+router.post(
+  "/ai/song-details",
+  requireAuth,
+  aiChatLimiter,
+  validate(AiSongDetailsRequestSchema),
+  (req: Request, res: Response, next: NextFunction) => {
+    controller
+      .getSongDetails(req.body)
       .then((result) => success(req, res, result, 200))
       .catch(next);
   }
