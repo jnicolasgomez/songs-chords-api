@@ -9,4 +9,6 @@ migration/
 scripts/enrich-artist-images.mjs
 app.yaml
 bandmate.code-workspace
-scripts/
+scripts/*
+scripts/tests/*
+scripts/migration-report-lists-*.json

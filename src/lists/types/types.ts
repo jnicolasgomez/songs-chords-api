@@ -35,6 +35,9 @@ export const ListSchema = z.looseObject({
   shared_with: z.array(z.string()).optional(),
   show_date: z.string().optional(),
   pinned: z.boolean().optional(),
+  createdAt: z.number().optional(),
+  updatedAt: z.number().optional(),
+  updatedBy: z.string().optional(),
 });
 
 export type List = z.infer<typeof ListSchema>;
