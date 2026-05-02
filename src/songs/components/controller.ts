@@ -105,7 +105,7 @@ export default function (selectedStore?: Store<Song>) {
   }
 
   const ALLOWED_PATCH_FIELDS = [
-    'title', 'artist', 'chords-text', 'tags', 'spotifyUrl', 'youtubeUrl', 'public', 'details'
+    'title', 'artist', 'chords-text', 'chordpro', 'tags', 'spotifyUrl', 'youtubeUrl', 'public', 'details'
   ] as const;
 
   async function patchSong(id: string, body: Partial<Song>, uid: string): Promise<{id: string}> {
