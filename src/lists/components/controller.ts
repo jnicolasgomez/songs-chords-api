@@ -53,6 +53,9 @@ export default function (injectedStore?: Store<List>) {
 
   async function upsertList(body: any, uid: string): Promise<{id: string}> {
     const incoming: any = { ...body };
+    delete incoming.createdAt;
+    delete incoming.updatedAt;
+    delete incoming.updatedBy;
     if (Array.isArray(incoming.items)) {
       incoming.songs = songIdsFromItems(incoming.items as ListItem[]);
     }
@@ -60,21 +63,24 @@ export default function (injectedStore?: Store<List>) {
     if (incoming.id) {
       existing = await selectedStore.get(LISTS_TABLE, incoming.id);
     }
+    const now = Date.now();
     if (existing) {
       assertCanEdit(existing, uid);
       incoming.user_uid = existing.user_uid;
+      incoming.createdAt = existing.createdAt ?? now;
       const isOwner = existing.user_uid === uid;
       if (isOwner && Array.isArray(incoming.shared_with)) {
         // Owner-supplied shared_with wins.
-      } else if (Array.isArray(existing.shared_with)) {
-        incoming.shared_with = existing.shared_with;
       } else {
-        delete incoming.shared_with;
+        incoming.shared_with = Array.isArray(existing.shared_with) ? existing.shared_with : [];
       }
     } else {
       incoming.user_uid = uid;
-      delete incoming.shared_with;
+      incoming.createdAt = now;
+      incoming.shared_with = [];
     }
+    incoming.updatedAt = now;
+    incoming.updatedBy = uid;
     const result = await selectedStore.upsert(LISTS_TABLE, incoming);
     return result;
   }
@@ -89,7 +95,12 @@ export default function (injectedStore?: Store<List>) {
     assertOwner(list, uid);
     const shared_with: string[] = list.shared_with ?? [];
     if (!shared_with.includes(targetUid)) shared_with.push(targetUid);
-    const result = await selectedStore.upsert(LISTS_TABLE, { ...list, shared_with });
+    const result = await selectedStore.upsert(LISTS_TABLE, {
+      ...list,
+      shared_with,
+      updatedAt: Date.now(),
+      updatedBy: uid,
+    });
     return result;
   }
 
@@ -98,7 +109,12 @@ export default function (injectedStore?: Store<List>) {
     if (!list) throw Object.assign(new Error("List not found"), { status: 404 });
     assertOwner(list, uid);
     const shared_with = (list.shared_with ?? []).filter((u: string) => u !== targetUid);
-    const result = await selectedStore.upsert(LISTS_TABLE, { ...list, shared_with });
+    const result = await selectedStore.upsert(LISTS_TABLE, {
+      ...list,
+      shared_with,
+      updatedAt: Date.now(),
+      updatedBy: uid,
+    });
     return result;
   }
 
@@ -113,7 +129,12 @@ export default function (injectedStore?: Store<List>) {
       songs.push(songId);
     }
     const existingItems = Array.isArray(list.items) ? (list.items as ListItem[]) : null;
-    const updated: List = { ...list, songs };
+    const updated: List = {
+      ...list,
+      songs,
+      updatedAt: Date.now(),
+      updatedBy: uid,
+    };
     if (existingItems) {
       const alreadyInItems = existingItems.some(
         (it) => it.type === "song" && it.songId === songId

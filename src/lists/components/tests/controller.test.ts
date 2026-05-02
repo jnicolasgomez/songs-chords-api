@@ -127,7 +127,7 @@ describe("upsertList", () => {
     expect(store._data.get("new-1")!.user_uid).toBe(OWNER);
   });
 
-  test("strips client-supplied shared_with on create", async () => {
+  test("strips client-supplied shared_with on create and defaults to empty array", async () => {
     const store = makeMockStore();
     const controller = controllerFactory(store);
 
@@ -142,7 +142,7 @@ describe("upsertList", () => {
       OWNER,
     );
 
-    expect(store._data.get("new-2")!.shared_with).toBeUndefined();
+    expect(store._data.get("new-2")!.shared_with).toEqual([]);
   });
 
   test("preserves existing user_uid when an editor updates", async () => {
@@ -191,6 +191,78 @@ describe("upsertList", () => {
     );
 
     expect(store._data.get("list-1")!.shared_with).toEqual([OTHER, "u3"]);
+  });
+
+  test("stamps updatedAt and updatedBy on every upsert", async () => {
+    const store = makeMockStore();
+    const controller = controllerFactory(store);
+    const before = Date.now();
+
+    await controller.upsertList(
+      { title: "New", private: false, id: "ts-1" },
+      OWNER,
+    );
+
+    const stored = store._data.get("ts-1")!;
+    expect(stored.updatedBy).toBe(OWNER);
+    expect(typeof stored.updatedAt).toBe("number");
+    expect(stored.updatedAt!).toBeGreaterThanOrEqual(before);
+  });
+
+  test("sets createdAt on first insert", async () => {
+    const store = makeMockStore();
+    const controller = controllerFactory(store);
+    const before = Date.now();
+
+    await controller.upsertList(
+      { title: "New", private: false, id: "ts-2" },
+      OWNER,
+    );
+
+    const stored = store._data.get("ts-2")!;
+    expect(typeof stored.createdAt).toBe("number");
+    expect(stored.createdAt!).toBeGreaterThanOrEqual(before);
+  });
+
+  test("preserves existing createdAt across updates", async () => {
+    const originalCreatedAt = 1700000000000;
+    const store = makeMockStore([{ ...baseList, createdAt: originalCreatedAt }]);
+    const controller = controllerFactory(store);
+
+    await controller.upsertList({ ...baseList, title: "Renamed" }, OWNER);
+
+    expect(store._data.get("list-1")!.createdAt).toBe(originalCreatedAt);
+  });
+
+  test("strips client-supplied updatedAt, updatedBy, and createdAt", async () => {
+    const store = makeMockStore();
+    const controller = controllerFactory(store);
+
+    await controller.upsertList(
+      {
+        title: "New",
+        private: false,
+        id: "ts-3",
+        updatedAt: 1,
+        updatedBy: "spoof",
+        createdAt: 1,
+      } as any,
+      OWNER,
+    );
+
+    const stored = store._data.get("ts-3")!;
+    expect(stored.updatedBy).toBe(OWNER);
+    expect(stored.updatedAt).not.toBe(1);
+    expect(stored.createdAt).not.toBe(1);
+  });
+
+  test("editor updates updatedBy to their own uid", async () => {
+    const store = makeMockStore([{ ...baseList, shared_with: [OTHER] }]);
+    const controller = controllerFactory(store);
+
+    await controller.upsertList({ ...baseList, title: "Renamed" }, OTHER);
+
+    expect(store._data.get("list-1")!.updatedBy).toBe(OTHER);
   });
 });
 
@@ -275,6 +347,18 @@ describe("addSongToList", () => {
 
     expect(store._data.get("list-1")!.songs).toEqual(["s1", "s2"]);
   });
+
+  test("stamps updatedAt and updatedBy", async () => {
+    const store = makeMockStore([{ ...baseList, songs: ["s1"] }]);
+    const controller = controllerFactory(store);
+    const before = Date.now();
+
+    await controller.addSongToList("list-1", "s2", OWNER);
+
+    const stored = store._data.get("list-1")!;
+    expect(stored.updatedBy).toBe(OWNER);
+    expect(stored.updatedAt!).toBeGreaterThanOrEqual(before);
+  });
 });
 
 describe("shareList / unshareList", () => {
@@ -303,5 +387,29 @@ describe("shareList / unshareList", () => {
     await expect(
       controller.unshareList("list-1", OTHER, OTHER),
     ).rejects.toMatchObject({ status: 403 });
+  });
+
+  test("shareList stamps updatedAt and updatedBy", async () => {
+    const store = makeMockStore([{ ...baseList }]);
+    const controller = controllerFactory(store);
+    const before = Date.now();
+
+    await controller.shareList("list-1", "u3", OWNER);
+
+    const stored = store._data.get("list-1")!;
+    expect(stored.updatedBy).toBe(OWNER);
+    expect(stored.updatedAt!).toBeGreaterThanOrEqual(before);
+  });
+
+  test("unshareList stamps updatedAt and updatedBy", async () => {
+    const store = makeMockStore([{ ...baseList, shared_with: [OTHER] }]);
+    const controller = controllerFactory(store);
+    const before = Date.now();
+
+    await controller.unshareList("list-1", OTHER, OWNER);
+
+    const stored = store._data.get("list-1")!;
+    expect(stored.updatedBy).toBe(OWNER);
+    expect(stored.updatedAt!).toBeGreaterThanOrEqual(before);
   });
 });
