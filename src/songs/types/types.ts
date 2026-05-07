@@ -16,7 +16,9 @@ export const SongSchema = z.object({
   public: z.boolean().optional(),
   title: z.string(),
   artist: z.string().optional(),
-  "chords-text": z.string(),
+  /** @deprecated Use `chordpro` instead */
+  "chords-text": z.string().optional(),
+  chordpro: z.string().optional(),
   details: SongDetailsSchema.optional(),
   tags: z.array(z.string()).optional(),
   spotifyUrl: z.string().optional(),

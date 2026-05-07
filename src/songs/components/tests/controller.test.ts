@@ -144,6 +144,28 @@ describe("patchSong", () => {
       controller.patchSong("missing", { title: "x" }, OWNER),
     ).rejects.toMatchObject({ status: 404 });
   });
+
+  test("allows patching chordpro and ignores disallowed fields", async () => {
+    const store = makeMockStore([{ ...baseSong }]);
+    const controller = controllerFactory(store);
+
+    await controller.patchSong(
+      "song-1",
+      { 
+        chordpro: "[C]Hello [G]World",
+        "chords-text": "Updated Chords",
+        user_uid: "sneaky-uid",
+        foo: "bar"
+      } as any,
+      OWNER,
+    );
+
+    const updated = store._data.get("song-1")!;
+    expect(updated.chordpro).toEqual("[C]Hello [G]World");
+    expect(updated["chords-text"]).toEqual("Updated Chords");
+    expect(updated.user_uid).toEqual(OWNER); // Should not be modified
+    expect((updated as any).foo).toBeUndefined();
+  });
 });
 
 describe("shareSong / unshareSong", () => {
