@@ -3,7 +3,7 @@ import type { Request } from "express";
 
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 400,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, res) => {
