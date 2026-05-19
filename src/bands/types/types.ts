@@ -6,6 +6,7 @@ export const BandSchema = z.object({
   created_by: z.string(),
   members: z.array(z.string()).default([]),
   created_at: z.string().optional(),
+  image_url: z.string().url().optional(),
 });
 
 export type Band = z.infer<typeof BandSchema>;

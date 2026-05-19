@@ -39,6 +39,9 @@ const router = Router();
  *                 type: array
  *                 items:
  *                   type: string
+ *               image_url:
+ *                 type: string
+ *                 format: uri
  *     responses:
  *       201:
  *         description: Band created
@@ -48,13 +51,55 @@ const router = Router();
  *         description: Invalid or missing JWT
  */
 router.post("/bands", requireAuth, (req: Request, res: Response, next: NextFunction) => {
-  const { name, created_by, members } = req.body;
+  const { name, created_by, members, image_url } = req.body;
   if (!name || !created_by) {
     return next(Object.assign(new Error("name and created_by are required"), { status: 400 }));
   }
   controller
-    .createBand({ name, created_by, members })
+    .createBand({ name, created_by, members, image_url })
     .then((item) => success(req, res, item, 201))
+    .catch(next);
+});
+
+/**
+ * @swagger
+ * /api/bands/{id}:
+ *   put:
+ *     summary: Update a band's name and/or image
+ *     tags: [Bands]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               image_url:
+ *                 type: string
+ *                 format: uri
+ *     responses:
+ *       200:
+ *         description: Updated band
+ *       403:
+ *         description: Invalid or missing JWT
+ *       404:
+ *         description: Band not found
+ */
+router.put("/bands/:id", conditionalAuth, (req: Request, res: Response, next: NextFunction) => {
+  const { name, image_url } = req.body;
+  controller
+    .updateBand(req.params.id, { name, image_url })
+    .then((item) => success(req, res, item, 200))
     .catch(next);
 });
 
