@@ -28,8 +28,8 @@ export default function (injectedStore?: Store<Band>) {
     }
     const updated: Band = {
       ...band,
-      ...(patch.name !== undefined ? { name: patch.name } : {}),
-      ...(patch.image_url !== undefined ? { image_url: patch.image_url } : {}),
+      ...(typeof patch.name === "string" ? { name: patch.name } : {}),
+      ...(typeof patch.image_url === "string" ? { image_url: patch.image_url } : {}),
     };
     await selectedStore.upsert(BANDS_TABLE, updated as any);
     return updated;
