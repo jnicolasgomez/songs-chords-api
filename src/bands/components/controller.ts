@@ -8,7 +8,7 @@ export default function (injectedStore?: Store<Band>) {
   let selectedStore: Store<Band> = store as unknown as Store<Band>;
   selectedStore = injectedStore || selectedStore;
 
-  async function createBand(body: { name: string; created_by: string; members?: string[] }): Promise<{ id: string }> {
+  async function createBand(body: { name: string; created_by: string; members?: string[]; image_url?: string }): Promise<{ id: string }> {
     const id = crypto.randomUUID();
     const band: Band = {
       id,
@@ -16,8 +16,28 @@ export default function (injectedStore?: Store<Band>) {
       created_by: body.created_by,
       members: body.members ?? [body.created_by],
       created_at: new Date().toISOString(),
+      ...(body.image_url ? { image_url: body.image_url } : {}),
     };
     return selectedStore.upsert(BANDS_TABLE, band as any);
+  }
+
+  async function updateBand(id: string, patch: { name?: string; image_url?: string }, uid: string): Promise<Band> {
+    const band = await selectedStore.get(BANDS_TABLE, id);
+    if (!band) {
+      throw Object.assign(new Error(`Band ${id} not found`), { status: 404 });
+    }
+    const isCreator = band.created_by === uid;
+    const isMember = Array.isArray(band.members) && band.members.includes(uid);
+    if (!isCreator && !isMember) {
+      throw Object.assign(new Error("FORBIDDEN"), { status: 403 });
+    }
+    const updated: Band = {
+      ...band,
+      ...(typeof patch.name === "string" ? { name: patch.name } : {}),
+      ...(typeof patch.image_url === "string" ? { image_url: patch.image_url } : {}),
+    };
+    await selectedStore.upsert(BANDS_TABLE, updated as any);
+    return updated;
   }
 
   async function getBandById(id: string): Promise<Band | null> {
@@ -55,6 +75,7 @@ export default function (injectedStore?: Store<Band>) {
 
   return {
     createBand,
+    updateBand,
     getBandById,
     getBandsByUser,
     addMember,

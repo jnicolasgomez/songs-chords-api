@@ -1,7 +1,10 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
 import { conditionalAuth, requireAuth } from "../../middleware/session.ts";
+import { getUid } from "../../middleware/authz.ts";
+import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
+import { CreateBandRequestSchema } from "../types/types.ts";
 import controller from "./index.ts";
 
 /**
@@ -27,18 +30,18 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, created_by]
+ *             required: [name]
  *             properties:
  *               name:
  *                 type: string
  *                 example: The Cats
- *               created_by:
- *                 type: string
- *                 example: firebase-uid-abc
  *               members:
  *                 type: array
  *                 items:
  *                   type: string
+ *               image_url:
+ *                 type: string
+ *                 format: uri
  *     responses:
  *       201:
  *         description: Band created
@@ -47,14 +50,54 @@ const router = Router();
  *       403:
  *         description: Invalid or missing JWT
  */
-router.post("/bands", requireAuth, (req: Request, res: Response, next: NextFunction) => {
-  const { name, created_by, members } = req.body;
-  if (!name || !created_by) {
-    return next(Object.assign(new Error("name and created_by are required"), { status: 400 }));
-  }
+router.post("/bands", requireAuth, validate(CreateBandRequestSchema), (req: Request, res: Response, next: NextFunction) => {
+  const { name, members, image_url } = req.body;
+  const created_by = getUid(req);
   controller
-    .createBand({ name, created_by, members })
+    .createBand({ name, created_by, members, image_url })
     .then((item) => success(req, res, item, 201))
+    .catch(next);
+});
+
+/**
+ * @swagger
+ * /api/bands/{id}:
+ *   put:
+ *     summary: Update a band's name and/or image
+ *     tags: [Bands]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               image_url:
+ *                 type: string
+ *                 format: uri
+ *     responses:
+ *       200:
+ *         description: Updated band
+ *       403:
+ *         description: Invalid or missing JWT
+ *       404:
+ *         description: Band not found
+ */
+router.put("/bands/:id", requireAuth, (req: Request, res: Response, next: NextFunction) => {
+  const { name, image_url } = req.body;
+  controller
+    .updateBand(req.params.id, { name, image_url }, getUid(req))
+    .then((item) => success(req, res, item, 200))
     .catch(next);
 });
 
