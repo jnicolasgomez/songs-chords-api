@@ -21,10 +21,15 @@ export default function (injectedStore?: Store<Band>) {
     return selectedStore.upsert(BANDS_TABLE, band as any);
   }
 
-  async function updateBand(id: string, patch: { name?: string; image_url?: string }): Promise<Band> {
+  async function updateBand(id: string, patch: { name?: string; image_url?: string }, uid: string): Promise<Band> {
     const band = await selectedStore.get(BANDS_TABLE, id);
     if (!band) {
       throw Object.assign(new Error(`Band ${id} not found`), { status: 404 });
+    }
+    const isCreator = band.created_by === uid;
+    const isMember = Array.isArray(band.members) && band.members.includes(uid);
+    if (!isCreator && !isMember) {
+      throw Object.assign(new Error("FORBIDDEN"), { status: 403 });
     }
     const updated: Band = {
       ...band,
