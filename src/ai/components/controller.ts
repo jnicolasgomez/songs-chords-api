@@ -67,7 +67,7 @@ me recuerda el olor de su piel.
     return system;
   }
 
-  function chat(body: AiChatRequest) {
+  function chat(body: AiChatRequest, signal?: AbortSignal) {
     const model =
       body.provider === "anthropic" ? DEFAULT_ANTHROPIC : DEFAULT_GEMINI;
 
@@ -75,6 +75,7 @@ me recuerda el olor de su piel.
       model,
       system: buildSystemPrompt(body),
       messages: body.messages,
+      abortSignal: signal,
     });
   }
 

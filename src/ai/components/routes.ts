@@ -41,6 +41,11 @@ const router = Router();
  *                       enum: [user, assistant]
  *                     content:
  *                       type: string
+ *               provider:
+ *                 type: string
+ *                 enum: [anthropic, gemini]
+ *                 default: gemini
+ *                 description: AI provider to use for the chat response
  *               songContext:
  *                 type: object
  *                 properties:
@@ -54,6 +59,25 @@ const router = Router();
  *                     type: string
  *                   bpm:
  *                     type: number
+ *               listContext:
+ *                 type: object
+ *                 description: Setlist context for the AI assistant
+ *                 properties:
+ *                   title:
+ *                     type: string
+ *                   songs:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         title:
+ *                           type: string
+ *                         artist:
+ *                           type: string
+ *                         tone:
+ *                           type: string
+ *                         bpm:
+ *                           type: number
  *     responses:
  *       200:
  *         description: Streamed AI reply (text/plain stream of UTF-8 chunks)
@@ -72,8 +96,11 @@ router.post(
   aiChatLimiter,
   validate(AiChatRequestSchema),
   async (req: Request, res: Response, next: NextFunction) => {
+    const abortController = new AbortController();
+    req.on("close", () => abortController.abort());
+
     try {
-      const result = controller.chat(req.body);
+      const result = controller.chat(req.body, abortController.signal);
 
       res.status(200);
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -82,11 +109,16 @@ router.post(
       res.flushHeaders?.();
 
       for await (const chunk of result.textStream) {
+        if (abortController.signal.aborted) break;
         res.write(chunk);
       }
       res.end();
     } catch (err) {
-      next(err);
+      if (res.headersSent) {
+        res.end();
+      } else {
+        next(err);
+      }
     }
   }
 );

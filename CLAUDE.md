@@ -46,6 +46,8 @@ All responses go through `src/network/response.ts` and are wrapped as:
 { "error": false, "status": 200, "body": <data> }
 ```
 
+**Exception:** `POST /api/ai/chat` streams a `text/plain; charset=utf-8` response directly (UTF-8 text chunks) instead of using the JSON wrapper. This is intentional — the route writes chunks incrementally and ends the response without going through `response.ts`.
+
 ## Environment variables
 
 | Variable | Description |
