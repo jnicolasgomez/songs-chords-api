@@ -36,4 +36,3 @@ export const AiChatRequestSchema = z.object({
 
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 export type AiChatRequest = z.infer<typeof AiChatRequestSchema>;
-export type AiChatResponse = { reply: string };

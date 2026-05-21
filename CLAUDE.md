@@ -46,6 +46,8 @@ All responses go through `src/network/response.ts` and are wrapped as:
 { "error": false, "status": 200, "body": <data> }
 ```
 
+**Exception:** `POST /api/ai/chat` streams a `text/plain; charset=utf-8` response directly (UTF-8 text chunks) instead of using the JSON wrapper. This is intentional — the route writes chunks incrementally and ends the response without going through `response.ts`.
+
 ## Environment variables
 
 | Variable | Description |
@@ -55,3 +57,6 @@ All responses go through `src/network/response.ts` and are wrapped as:
 | `FIRESTORE_DATABASE_ID` | Firestore database ID (defaults to `(default)`) |
 | `CORS_WHITELIST` | Comma-separated allowed origins |
 | `PORT` | Server port (defaults to `3001`) |
+| `AI_GATEWAY_API_KEY` | Vercel AI Gateway API key (used by the `ai` SDK for both Gemini and Anthropic chat) |
+| `AI_CHAT_MODEL` | Default Gateway model ID for chat (defaults to `google/gemini-2.5-flash`) |
+| `AI_CHAT_MODEL_ANTHROPIC` | Gateway model ID used when the request specifies `provider: "anthropic"` (defaults to `anthropic/claude-haiku-4.5`) |

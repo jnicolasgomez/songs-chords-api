@@ -10,3 +10,4 @@ scripts/enrich-artist-images.mjs
 app.yaml
 bandmate.code-workspace
 scripts/
+.antigravitycli/
