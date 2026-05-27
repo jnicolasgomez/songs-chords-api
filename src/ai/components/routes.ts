@@ -150,7 +150,7 @@ router.post(
             res.flushHeaders?.();
             headersSent = true;
           }
-          res.write(part.textDelta);
+          res.write((part as any).text ?? (part as any).textDelta ?? "");
         }
       }
 
@@ -168,6 +168,7 @@ router.post(
 
       res.end();
     } catch (err: any) {
+      console.error(err);
       if (res.headersSent) {
         res.end();
         return;

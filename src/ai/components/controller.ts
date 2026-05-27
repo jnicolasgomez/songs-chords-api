@@ -1,9 +1,14 @@
 import { streamText } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { AiChatRequest } from "../types/types.ts";
 
-const DEFAULT_GEMINI = process.env.AI_CHAT_MODEL || "google/gemini-2.5-flash";
+const DEFAULT_GEMINI = process.env.AI_CHAT_MODEL || "gemini-2.5-flash";
 const DEFAULT_ANTHROPIC =
   process.env.AI_CHAT_MODEL_ANTHROPIC || "anthropic/claude-haiku-4.5";
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
 
 export default function () {
   function buildSystemPrompt(body: AiChatRequest): string {
@@ -69,7 +74,9 @@ me recuerda el olor de su piel.
 
   function chat(body: AiChatRequest, signal?: AbortSignal) {
     const model =
-      body.provider === "anthropic" ? DEFAULT_ANTHROPIC : DEFAULT_GEMINI;
+      body.provider === "anthropic"
+        ? DEFAULT_ANTHROPIC
+        : google(DEFAULT_GEMINI);
 
     return streamText({
       model,
