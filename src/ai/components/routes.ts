@@ -59,7 +59,7 @@ const router = Router();
  *                     type: string
  *                   bpm:
  *                     type: number
- *               listContext:
+ *               setlistContext:
  *                 type: object
  *                 description: Setlist context for the AI assistant
  *                 properties:

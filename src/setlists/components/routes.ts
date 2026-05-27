@@ -5,20 +5,20 @@ import { getUid } from "../../middleware/authz.ts";
 import { writeLimiter } from "../../middleware/rateLimit.ts";
 import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
-import { ListSchema } from "../types/types.ts";
+import { SetlistSchema } from "../types/types.ts";
 import controller from "./index.ts";
 import usersController from "../../users/components/index.ts";
 
 /**
  * @swagger
  * tags:
- *   name: Lists
- *   description: Song list management
+ *   name: Setlists
+ *   description: Setlist management
  */
 
 const router = Router();
 
-type ListRequest = Request & {
+type SetlistRequest = Request & {
   query: {
     userId?: string;
     bandId?: string;
@@ -27,10 +27,10 @@ type ListRequest = Request & {
 
 /**
  * @swagger
- * /api/lists:
+ * /api/setlists:
  *   post:
- *     summary: Create or update a list
- *     tags: [Lists]
+ *     summary: Create or update a setlist
+ *     tags: [Setlists]
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -78,11 +78,11 @@ type ListRequest = Request & {
  *                         label: { type: string }
  *     responses:
  *       201:
- *         description: List created/updated
+ *         description: Setlist created/updated
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/List'
+ *               $ref: '#/components/schemas/Setlist'
  *       400:
  *         description: Missing required fields
  *         content:
@@ -96,9 +96,9 @@ type ListRequest = Request & {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/lists", requireAuth, writeLimiter, validate(ListSchema), (req: Request, res: Response, next: NextFunction) => {
+router.post("/setlists", requireAuth, writeLimiter, validate(SetlistSchema), (req: Request, res: Response, next: NextFunction) => {
   controller
-    .upsertList(req.body, getUid(req))
+    .upsertSetlist(req.body, getUid(req))
     .then((item) => {
       success(req, res, item, 201);
     })
@@ -107,45 +107,45 @@ router.post("/lists", requireAuth, writeLimiter, validate(ListSchema), (req: Req
 
 /**
  * @swagger
- * /api/lists:
+ * /api/setlists:
  *   get:
- *     summary: List all public lists, or filter by userId
- *     tags: [Lists]
+ *     summary: List all public setlists, or filter by userId
+ *     tags: [Setlists]
  *     parameters:
  *       - in: query
  *         name: userId
  *         schema:
  *           type: string
- *         description: Filter lists by Firebase user UID
+ *         description: Filter setlists by Firebase user UID
  *     responses:
  *       200:
- *         description: List of lists
+ *         description: List of setlists
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/List'
+ *                 $ref: '#/components/schemas/Setlist'
  */
-router.get("/lists", conditionalAuth, (req: ListRequest, res: Response, next: NextFunction) => {
+router.get("/setlists", conditionalAuth, (req: SetlistRequest, res: Response, next: NextFunction) => {
   const { userId, bandId } = req.query;
   if (bandId) {
     controller
-      .listsByBand(bandId)
+      .setlistsByBand(bandId)
       .then((item) => {
         success(req, res, item, 200);
       })
       .catch(next);
   } else if (userId) {
     controller
-      .listsByUser(userId)
+      .setlistsByUser(userId)
       .then((item) => {
         success(req, res, item, 200);
       })
       .catch(next);
   } else {
     controller
-      .publicLists()
+      .publicSetlists()
       .then((item) => {
         success(req, res, item, 200);
       })
@@ -155,28 +155,28 @@ router.get("/lists", conditionalAuth, (req: ListRequest, res: Response, next: Ne
 
 /**
  * @swagger
- * /api/lists/{id}:
+ * /api/setlists/{id}:
  *   get:
- *     summary: Get a list by ID
- *     tags: [Lists]
+ *     summary: Get a setlist by ID
+ *     tags: [Setlists]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: List ID
+ *         description: Setlist ID
  *     responses:
  *       200:
- *         description: List found
+ *         description: Setlist found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/List'
+ *               $ref: '#/components/schemas/Setlist'
  */
-router.get("/lists/:id", (req: Request, res: Response, next: NextFunction) => {
+router.get("/setlists/:id", (req: Request, res: Response, next: NextFunction) => {
   controller
-    .listById(req.params.id)
+    .setlistById(req.params.id)
     .then((item) => {
       success(req, res, item, 200);
     })
@@ -185,10 +185,10 @@ router.get("/lists/:id", (req: Request, res: Response, next: NextFunction) => {
 
 /**
  * @swagger
- * /api/lists/{id}/songs:
+ * /api/setlists/{id}/songs:
  *   post:
- *     summary: Add a song to an existing list
- *     tags: [Lists]
+ *     summary: Add a song to an existing setlist
+ *     tags: [Setlists]
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -197,7 +197,7 @@ router.get("/lists/:id", (req: Request, res: Response, next: NextFunction) => {
  *         required: true
  *         schema:
  *           type: string
- *         description: List ID
+ *         description: Setlist ID
  *     requestBody:
  *       required: true
  *       content:
@@ -211,11 +211,11 @@ router.get("/lists/:id", (req: Request, res: Response, next: NextFunction) => {
  *                 example: song-abc-123
  *     responses:
  *       200:
- *         description: Updated list
+ *         description: Updated setlist
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/List'
+ *               $ref: '#/components/schemas/Setlist'
  *       400:
  *         description: Missing songId
  *         content:
@@ -223,19 +223,19 @@ router.get("/lists/:id", (req: Request, res: Response, next: NextFunction) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: List not found
+ *         description: Setlist not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/lists/:id/songs", requireAuth, writeLimiter, (req: Request, res: Response, next: NextFunction) => {
+router.post("/setlists/:id/songs", requireAuth, writeLimiter, (req: Request, res: Response, next: NextFunction) => {
   const { songId } = req.body;
   if (!songId) {
     return next(Object.assign(new Error("songId is required"), { status: 400 }));
   }
   controller
-    .addSongToList(req.params.id, songId, getUid(req))
+    .addSongToSetlist(req.params.id, songId, getUid(req))
     .then((item) => {
       success(req, res, item, 200);
     })
@@ -244,11 +244,11 @@ router.post("/lists/:id/songs", requireAuth, writeLimiter, (req: Request, res: R
 
 /**
  * @swagger
- * /api/lists/{id}/collaborators:
+ * /api/setlists/{id}/collaborators:
  *   post:
- *     summary: Share a list with a collaborator by email
- *     description: Resolves the email to a Firebase UID and adds it to the list's shared_with array. The collaborator will be able to view and edit the list.
- *     tags: [Lists]
+ *     summary: Share a setlist with a collaborator by email
+ *     description: Resolves the email to a Firebase UID and adds it to the setlist's shared_with array. The collaborator will be able to view and edit the setlist.
+ *     tags: [Setlists]
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -257,7 +257,7 @@ router.post("/lists/:id/songs", requireAuth, writeLimiter, (req: Request, res: R
  *         required: true
  *         schema:
  *           type: string
- *         description: List ID
+ *         description: Setlist ID
  *     requestBody:
  *       required: true
  *       content:
@@ -292,20 +292,20 @@ router.post("/lists/:id/songs", requireAuth, writeLimiter, (req: Request, res: R
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: List or user not found
+ *         description: Setlist or user not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/lists/:id/collaborators", requireAuth, writeLimiter, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/setlists/:id/collaborators", requireAuth, writeLimiter, async (req: Request, res: Response, next: NextFunction) => {
   const { email } = req.body as { email?: string };
   if (!email) {
     return next(Object.assign(new Error("email is required"), { status: 400 }));
   }
   try {
     const { uid } = await usersController.lookupByEmail(email);
-    const result = await controller.shareList(req.params.id, uid, getUid(req));
+    const result = await controller.shareSetlist(req.params.id, uid, getUid(req));
     success(req, res, result, 200);
   } catch (err) {
     next(err);
@@ -314,10 +314,10 @@ router.post("/lists/:id/collaborators", requireAuth, writeLimiter, async (req: R
 
 /**
  * @swagger
- * /api/lists/{id}/collaborators/{uid}:
+ * /api/setlists/{id}/collaborators/{uid}:
  *   delete:
- *     summary: Remove a collaborator from a list
- *     tags: [Lists]
+ *     summary: Remove a collaborator from a setlist
+ *     tags: [Setlists]
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -326,7 +326,7 @@ router.post("/lists/:id/collaborators", requireAuth, writeLimiter, async (req: R
  *         required: true
  *         schema:
  *           type: string
- *         description: List ID
+ *         description: Setlist ID
  *       - in: path
  *         name: uid
  *         required: true
@@ -350,15 +350,15 @@ router.post("/lists/:id/collaborators", requireAuth, writeLimiter, async (req: R
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       404:
- *         description: List not found
+ *         description: Setlist not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.delete("/lists/:id/collaborators/:uid", requireAuth, (req: Request, res: Response, next: NextFunction) => {
+router.delete("/setlists/:id/collaborators/:uid", requireAuth, (req: Request, res: Response, next: NextFunction) => {
   controller
-    .unshareList(req.params.id, req.params.uid, getUid(req))
+    .unshareSetlist(req.params.id, req.params.uid, getUid(req))
     .then((item) => success(req, res, item, 200))
     .catch(next);
 });

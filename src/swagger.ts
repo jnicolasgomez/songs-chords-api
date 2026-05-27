@@ -6,7 +6,7 @@ const options: swaggerJsdoc.Options = {
     info: {
       title: "Songs Chords API",
       version: "2.0.0",
-      description: "Chords API for songs, lists, and artists",
+      description: "Chords API for songs, setlists, and artists",
     },
     components: {
       securitySchemes: {
@@ -43,15 +43,15 @@ const options: swaggerJsdoc.Options = {
           },
           required: ["id", "title", "chords-text"],
         },
-        List: {
+        Setlist: {
           type: "object",
           properties: {
-            id: { type: "string", example: "list123" },
+            id: { type: "string", example: "setlist123" },
             user_uid: { type: "string", example: "firebase-uid-abc" },
             title: { type: "string", example: "My Setlist" },
             private: { type: "boolean", example: false },
             songs: { type: "array", items: { type: "string" }, example: ["songId1", "songId2"] },
-            shared_with: { type: "array", items: { type: "string" }, example: ["uid1", "uid2"], description: "Firebase UIDs of collaborators who can view and edit this list" },
+            shared_with: { type: "array", items: { type: "string" }, example: ["uid1", "uid2"], description: "Firebase UIDs of collaborators who can view and edit this setlist" },
           },
           required: ["id"],
         },

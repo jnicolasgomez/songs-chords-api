@@ -281,9 +281,9 @@ router.get("/songs/:id", (req: Request, res: Response, next: NextFunction) => {
 
 /**
  * @swagger
- * /api/songs/list/{id}:
+ * /api/songs/setlist/{id}:
  *   get:
- *     summary: Get songs by list ID
+ *     summary: Get songs by setlist ID
  *     tags: [Songs]
  *     parameters:
  *       - in: path
@@ -291,10 +291,10 @@ router.get("/songs/:id", (req: Request, res: Response, next: NextFunction) => {
  *         required: true
  *         schema:
  *           type: string
- *         description: List ID
+ *         description: Setlist ID
  *     responses:
  *       200:
- *         description: Songs in the list
+ *         description: Songs in the setlist
  *         content:
  *           application/json:
  *             schema:
@@ -302,9 +302,9 @@ router.get("/songs/:id", (req: Request, res: Response, next: NextFunction) => {
  *               items:
  *                 $ref: '#/components/schemas/Song'
  */
-router.get("/songs/list/:id", (req: Request, res: Response, next: NextFunction) => {
+router.get("/songs/setlist/:id", (req: Request, res: Response, next: NextFunction) => {
   controller
-    .getSongByList(req.params.id)
+    .getSongBySetlist(req.params.id)
     .then((item) => {
       success(req, res, item, 200);
     })

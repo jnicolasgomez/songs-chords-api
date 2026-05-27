@@ -1,10 +1,10 @@
 import type { Store } from "../../../songs/types/types.ts";
-import type { List } from "../../types/types.ts";
+import type { Setlist } from "../../types/types.ts";
 
-export type MockStore = Store<List> & { _data: Map<string, List> };
+export type MockStore = Store<Setlist> & { _data: Map<string, Setlist> };
 
-export function makeMockStore(seed: List[] = []): MockStore {
-  const data = new Map<string, List>(seed.map((l) => [l.id!, l]));
+export function makeMockStore(seed: Setlist[] = []): MockStore {
+  const data = new Map<string, Setlist>(seed.map((l) => [l.id!, l]));
   return {
     async list() {
       return [...data.values()];
@@ -12,7 +12,7 @@ export function makeMockStore(seed: List[] = []): MockStore {
     async get(_table: string, id: string) {
       return data.get(id) ?? null;
     },
-    async upsert(_table: string, body: List & { id: string }) {
+    async upsert(_table: string, body: Setlist & { id: string }) {
       data.set(body.id, body);
       return { id: body.id };
     },

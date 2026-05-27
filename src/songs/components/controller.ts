@@ -5,7 +5,7 @@ import { assertCanEdit, assertOwner } from "../../middleware/authz.ts";
 
 
 const SONGS_TABLE = process.env.SONGS_TABLE_NAME || "songs";
-const LISTS_TABLE = process.env.LISTS_TABLE_NAME || "lists";
+const SETLISTS_TABLE = process.env.LISTS_TABLE_NAME || "lists";
 
 
 
@@ -142,9 +142,9 @@ export default function (selectedStore?: Store<Song>) {
     return injectedStore.upsert(SONGS_TABLE, { ...song, shared_with });
   }
 
-  async function getSongByList(id: string): Promise<Song[]> {
-    const currentList = await injectedStore.get(LISTS_TABLE, id);
-    const songsIds = currentList?.songs;
+  async function getSongBySetlist(id: string): Promise<Song[]> {
+    const currentSetlist = await injectedStore.get(SETLISTS_TABLE, id);
+    const songsIds = currentSetlist?.songs;
     const songsList = await injectedStore.byIdsArray(SONGS_TABLE, songsIds);
     // Create a map to store the indices of songsIds
     const indexMap: { [key: string]: number } = {};
@@ -164,7 +164,7 @@ export default function (selectedStore?: Store<Song>) {
     patchSong,
     listSongs,
     getSongById,
-    getSongByList,
+    getSongBySetlist,
     getSongsByIds,
     songsByUser,
     songsByArtist,

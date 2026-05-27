@@ -17,7 +17,7 @@ export const AiChatRequestSchema = z.object({
       bpm: z.coerce.number().nullish(),
     })
     .optional(),
-  listContext: z
+  setlistContext: z
     .object({
       title: z.string().nullish(),
       songs: z
