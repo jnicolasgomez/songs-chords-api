@@ -105,7 +105,7 @@ export default function (injectedStore?: Store<Setlist>) {
   async function addSongToSetlist(setlistId: string, songId: string, uid: string): Promise<Setlist> {
     const setlist = await selectedStore.get(SETLISTS_TABLE, setlistId);
     if (!setlist) {
-      throw new Error(`Setlist ${setlistId} not found`);
+      throw Object.assign(new Error(`Setlist ${setlistId} not found`), { status: 404 });
     }
     assertCanEdit(setlist, uid);
     const songs: string[] = setlist.songs ?? [];
