@@ -25,9 +25,9 @@ export const SetlistItemSchema = z.discriminatedUnion("type", [
 export type SetlistItem = z.infer<typeof SetlistItemSchema>;
 
 export const SetlistSchema = z.looseObject({
-  id: z.string().optional(),
+  id: z.string(),
   title: z.string(),
-  user_uid: z.string().optional(),
+  user_uid: z.string(),
   private: z.boolean(),
   songs: z.array(z.string()).optional(),
   items: z.array(SetlistItemSchema).optional(),

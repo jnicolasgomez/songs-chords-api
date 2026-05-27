@@ -53,7 +53,7 @@ const options: swaggerJsdoc.Options = {
             songs: { type: "array", items: { type: "string" }, example: ["songId1", "songId2"] },
             shared_with: { type: "array", items: { type: "string" }, example: ["uid1", "uid2"], description: "Firebase UIDs of collaborators who can view and edit this setlist" },
           },
-          required: ["id"],
+          required: ["id", "user_uid", "title"],
         },
         UserInfo: {
           type: "object",
