@@ -281,38 +281,6 @@ router.get("/songs/:id", (req: Request, res: Response, next: NextFunction) => {
 
 /**
  * @swagger
- * /api/songs/setlist/{id}:
- *   get:
- *     summary: Get songs by setlist ID
- *     tags: [Songs]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Setlist ID
- *     responses:
- *       200:
- *         description: Songs in the setlist
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Song'
- */
-router.get("/songs/setlist/:id", (req: Request, res: Response, next: NextFunction) => {
-  controller
-    .getSongBySetlist(req.params.id)
-    .then((item) => {
-      success(req, res, item, 200);
-    })
-    .catch(next);
-});
-
-/**
- * @swagger
  * /api/songs/{id}/collaborators:
  *   post:
  *     summary: Share a song with a collaborator by email

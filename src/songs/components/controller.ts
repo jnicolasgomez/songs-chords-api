@@ -5,10 +5,6 @@ import { assertCanEdit, assertOwner } from "../../middleware/authz.ts";
 
 
 const SONGS_TABLE = process.env.SONGS_TABLE_NAME || "songs";
-const SETLISTS_TABLE = process.env.LISTS_TABLE_NAME || "lists";
-
-
-
 
 export default function (selectedStore?: Store<Song>) {
 
@@ -74,7 +70,7 @@ export default function (selectedStore?: Store<Song>) {
     return injectedStore.query(SONGS_TABLE, [["band_id", "==", bandId]]);
   }
 
-  async function upsertSong(body: any, uid: string): Promise<{id: string}> {
+  async function upsertSong(body: any, uid: string): Promise<{ id: string }> {
     const incoming: any = { ...body };
     if (incoming.id) {
       const existing = await injectedStore.get(SONGS_TABLE, incoming.id);
@@ -108,7 +104,7 @@ export default function (selectedStore?: Store<Song>) {
     'title', 'artist', 'chords-text', 'chordpro', 'tags', 'spotifyUrl', 'youtubeUrl', 'public', 'details'
   ] as const;
 
-  async function patchSong(id: string, body: Partial<Song>, uid: string): Promise<{id: string}> {
+  async function patchSong(id: string, body: Partial<Song>, uid: string): Promise<{ id: string }> {
     const existing = await injectedStore.get(SONGS_TABLE, id);
     if (!existing) throw Object.assign(new Error("Song not found"), { status: 404 });
     assertCanEdit(existing, uid);
@@ -142,29 +138,11 @@ export default function (selectedStore?: Store<Song>) {
     return injectedStore.upsert(SONGS_TABLE, { ...song, shared_with });
   }
 
-  async function getSongBySetlist(id: string): Promise<Song[]> {
-    const currentSetlist = await injectedStore.get(SETLISTS_TABLE, id);
-    const songsIds = currentSetlist?.songs;
-    const songsList = await injectedStore.byIdsArray(SONGS_TABLE, songsIds);
-    // Create a map to store the indices of songsIds
-    const indexMap: { [key: string]: number } = {};
-    songsIds.forEach((id, index) => {
-      indexMap[id] = index;
-    });
-    // Sort songsList based on the order of songsIds
-    songsList.sort((a, b) => {
-      return indexMap[a.id] - indexMap[b.id];
-    });
-
-    return songsList;
-  }
-
   return {
     upsertSong,
     patchSong,
     listSongs,
     getSongById,
-    getSongBySetlist,
     getSongsByIds,
     songsByUser,
     songsByArtist,
