@@ -27,7 +27,7 @@ Em              D
 me recuerda el olor de su piel.
 \`\`\``;
 
-    const { songContext, listContext } = body;
+    const { songContext, setlistContext } = body;
 
     if (songContext) {
       const { title, artist, tone, bpm, chordsText } = songContext;
@@ -50,11 +50,11 @@ me recuerda el olor de su piel.
       }
     }
 
-    if (listContext) {
-      system += `\n\n## Setlist actual\nTítulo: ${listContext.title || "Sin título"}`;
-      if (listContext.songs && listContext.songs.length > 0) {
-        system += `\n\n## Canciones en el setlist (${listContext.songs.length}):\n`;
-        listContext.songs.forEach((s, i) => {
+    if (setlistContext) {
+      system += `\n\n## Setlist actual\nTítulo: ${setlistContext.title || "Sin título"}`;
+      if (setlistContext.songs && setlistContext.songs.length > 0) {
+        system += `\n\n## Canciones en el setlist (${setlistContext.songs.length}):\n`;
+        setlistContext.songs.forEach((s, i) => {
           const parts: string[] = [`${i + 1}. ${s.title || "Sin título"}`];
           if (s.artist) parts.push(`Artista: ${s.artist}`);
           if (s.tone) parts.push(`Tono: ${s.tone}`);

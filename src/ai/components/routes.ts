@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response } from "express";
 import { requireAuth } from "../../middleware/session.ts";
 import { aiChatLimiter } from "../../middleware/rateLimit.ts";
 import { validate } from "../../middleware/validate.ts";
@@ -59,7 +59,7 @@ const router = Router();
  *                     type: string
  *                   bpm:
  *                     type: number
- *               listContext:
+ *               setlistContext:
  *                 type: object
  *                 description: Setlist context for the AI assistant
  *                 properties:
@@ -95,30 +95,108 @@ router.post(
   requireAuth,
   aiChatLimiter,
   validate(AiChatRequestSchema),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response) => {
     const abortController = new AbortController();
     req.on("close", () => abortController.abort());
 
     try {
       const result = controller.chat(req.body, abortController.signal);
 
-      res.status(200);
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      res.setHeader("Cache-Control", "no-cache, no-transform");
-      res.setHeader("X-Accel-Buffering", "no");
-      res.flushHeaders?.();
+      let headersSent = false;
 
-      for await (const chunk of result.textStream) {
+      for await (const part of result.fullStream) {
         if (abortController.signal.aborted) break;
-        res.write(chunk);
+
+        if (part.type === "error") {
+          // Provider error delivered as a stream event (not thrown)
+          if (!res.headersSent) {
+            const err: any = part.error;
+            const statusCode =
+              err?.statusCode ?? err?.status ?? err?.data?.statusCode ?? 502;
+            const responseBody =
+              err?.responseBody ?? err?.data?.responseBody;
+
+            let errorMessage = err?.message ?? "AI provider error";
+            let errorType = "ai_provider_error";
+
+            if (responseBody) {
+              try {
+                const parsed =
+                  typeof responseBody === "string"
+                    ? JSON.parse(responseBody)
+                    : responseBody;
+                errorMessage = parsed?.error?.message ?? errorMessage;
+                errorType = parsed?.error?.type ?? errorType;
+              } catch {
+                // responseBody wasn't valid JSON, keep defaults
+              }
+            }
+
+            res.status(statusCode).json({
+              error: { message: errorMessage, type: errorType, statusCode },
+            });
+          } else {
+            res.end();
+          }
+          return;
+        }
+
+        if (part.type === "text-delta") {
+          if (!headersSent) {
+            res.status(200);
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.setHeader("Cache-Control", "no-cache, no-transform");
+            res.setHeader("X-Accel-Buffering", "no");
+            res.flushHeaders?.();
+            headersSent = true;
+          }
+          res.write(part.textDelta);
+        }
       }
+
+      // If stream ended without producing any chunks, return an error
+      if (!headersSent && !res.headersSent) {
+        res.status(502).json({
+          error: {
+            message: "No response from AI provider",
+            type: "ai_provider_error",
+            statusCode: 502,
+          },
+        });
+        return;
+      }
+
       res.end();
-    } catch (err) {
+    } catch (err: any) {
       if (res.headersSent) {
         res.end();
-      } else {
-        next(err);
+        return;
       }
+
+      // Fallback: error was thrown rather than delivered as a stream event
+      const statusCode =
+        err?.statusCode ?? err?.status ?? err?.data?.statusCode ?? 500;
+      const responseBody = err?.responseBody ?? err?.data?.responseBody;
+
+      let errorMessage = err?.message ?? "AI provider error";
+      let errorType = "ai_provider_error";
+
+      if (responseBody) {
+        try {
+          const parsed =
+            typeof responseBody === "string"
+              ? JSON.parse(responseBody)
+              : responseBody;
+          errorMessage = parsed?.error?.message ?? errorMessage;
+          errorType = parsed?.error?.type ?? errorType;
+        } catch {
+          // responseBody wasn't valid JSON, keep defaults
+        }
+      }
+
+      res.status(statusCode).json({
+        error: { message: errorMessage, type: errorType, statusCode },
+      });
     }
   }
 );

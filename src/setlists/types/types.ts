@@ -16,25 +16,25 @@ const PauseItemSchema = z.object({
   label: z.string().optional(),
 });
 
-export const ListItemSchema = z.discriminatedUnion("type", [
+export const SetlistItemSchema = z.discriminatedUnion("type", [
   SongItemSchema,
   SetItemSchema,
   PauseItemSchema,
 ]);
 
-export type ListItem = z.infer<typeof ListItemSchema>;
+export type SetlistItem = z.infer<typeof SetlistItemSchema>;
 
-export const ListSchema = z.looseObject({
-  id: z.string().optional(),
+export const SetlistSchema = z.looseObject({
+  id: z.string(),
   title: z.string(),
-  user_uid: z.string().optional(),
+  user_uid: z.string(),
   private: z.boolean(),
   songs: z.array(z.string()).optional(),
-  items: z.array(ListItemSchema).optional(),
+  items: z.array(SetlistItemSchema).optional(),
   band_id: z.string().optional(),
   shared_with: z.array(z.string()).optional(),
   show_date: z.string().optional(),
   pinned: z.boolean().optional(),
 });
 
-export type List = z.infer<typeof ListSchema>;
+export type Setlist = z.infer<typeof SetlistSchema>;
