@@ -125,7 +125,7 @@ describe("getProfile", () => {
 });
 
 describe("getByUid", () => {
-  test("merges roles from Firestore into the auth record", async () => {
+  test("returns auth record fields without roles", async () => {
     const controller = controllerFactory(
       makeMockStore([{ uid: "u1", roles: ["bassist"] }]),
     );
@@ -136,15 +136,6 @@ describe("getByUid", () => {
       uid: "u1",
       email: "u1@example.com",
       displayName: "User u1",
-      roles: ["bassist"],
     });
-  });
-
-  test("falls back to an empty roles array when no profile exists", async () => {
-    const controller = controllerFactory(makeMockStore());
-
-    const info = await controller.getByUid("u1");
-
-    expect(info.roles).toEqual([]);
   });
 });

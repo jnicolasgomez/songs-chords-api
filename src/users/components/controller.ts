@@ -25,7 +25,6 @@ export interface UserInfo {
   uid: string;
   email?: string;
   displayName?: string;
-  roles?: BandRole[];
 }
 
 export default function (selectedStore?: Store<UserProfile>) {
@@ -42,15 +41,11 @@ export default function (selectedStore?: Store<UserProfile>) {
   }
 
   async function getByUid(uid: string): Promise<UserInfo> {
-    const [userRecord, profile] = await Promise.all([
-      getAuth().getUser(uid),
-      injectedStore.get(USERS_TABLE, uid) as Promise<UserProfile | null>,
-    ]);
+    const userRecord = await getAuth().getUser(uid);
     return {
       uid: userRecord.uid,
       email: userRecord.email,
       displayName: userRecord.displayName,
-      roles: profile?.roles ?? [],
     };
   }
 
