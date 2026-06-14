@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
 import { requireAuth } from "../../middleware/session.ts";
+import { getUid } from "../../middleware/authz.ts";
 import { success } from "../../network/response.ts";
 import controller from "./index.ts";
 
@@ -110,5 +111,104 @@ router.get("/users/:uid", requireAuth, (req: Request, res: Response, next: NextF
     .then((u) => success(req, res, u, 200))
     .catch(next);
 });
+
+/**
+ * @swagger
+ * /api/users/{uid}/profile:
+ *   get:
+ *     summary: Get a user's extended profile (band roles)
+ *     description: Returns the user's band roles. Empty array if no profile has been saved yet.
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: uid
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Firebase UID
+ *     responses:
+ *       200:
+ *         description: Profile retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 roles:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                     enum: [singer, guitarist, bassist, drummer, keyboardist, other]
+ *       403:
+ *         description: Invalid or missing JWT
+ */
+router.get(
+  "/users/:uid/profile",
+  requireAuth,
+  (req: Request, res: Response, next: NextFunction) => {
+    controller
+      .getProfile(req.params.uid)
+      .then((p) => success(req, res, p, 200))
+      .catch(next);
+  },
+);
+
+/**
+ * @swagger
+ * /api/users/{uid}/profile:
+ *   put:
+ *     summary: Update the authenticated user's extended profile
+ *     description: Replaces the user's band roles. The path uid must match the authenticated uid.
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: uid
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Firebase UID (must match the caller)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [roles]
+ *             properties:
+ *               roles:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [singer, guitarist, bassist, drummer, keyboardist, other]
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ *       400:
+ *         description: Invalid roles payload
+ *       403:
+ *         description: Caller is not the profile owner
+ */
+router.put(
+  "/users/:uid/profile",
+  requireAuth,
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const callerUid = getUid(req);
+      if (callerUid !== req.params.uid) {
+        return next(Object.assign(new Error("FORBIDDEN"), { status: 403 }));
+      }
+      controller
+        .updateProfile(req.params.uid, req.body ?? {})
+        .then((p) => success(req, res, p, 200))
+        .catch(next);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 export default router;
