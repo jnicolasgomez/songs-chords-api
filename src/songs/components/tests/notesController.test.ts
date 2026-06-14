@@ -35,6 +35,20 @@ describe("notes: listNotes", () => {
     const result = await controller.listNotes("song-1", OWNER);
     expect(result.map((n) => n.id)).toEqual(["n1"]);
   });
+
+  test("forbidden if stranger tries to list notes on private song", async () => {
+    const { controller } = setup([baseSong]);
+    await expect(
+      controller.listNotes("song-1", STRANGER),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  test("missing song returns 404 on listNotes", async () => {
+    const { controller } = setup([]);
+    await expect(
+      controller.listNotes("ghost", OWNER),
+    ).rejects.toMatchObject({ status: 404 });
+  });
 });
 
 describe("notes: createNote", () => {
@@ -88,6 +102,13 @@ describe("notes: createNote", () => {
       controller.createNote("ghost", { icon: "mdi-star", title: "T", text: "B" }, OWNER),
     ).rejects.toMatchObject({ status: 404 });
   });
+
+  test("missing icon or title throws 400", async () => {
+    const { controller } = setup([baseSong]);
+    await expect(
+      controller.createNote("song-1", { text: "B" } as any, OWNER),
+    ).rejects.toMatchObject({ status: 400 });
+  });
 });
 
 describe("notes: updateNote", () => {
@@ -103,7 +124,7 @@ describe("notes: updateNote", () => {
 
   test("author can update their own note", async () => {
     const { controller, notesStore } = setup([baseSong], [note]);
-    const updated = await controller.updateNote("n1", { title: "New" }, OWNER);
+    const updated = await controller.updateNote("song-1", "n1", { title: "New" }, OWNER);
     expect(updated.title).toBe("New");
     expect(notesStore._data.get("n1")!.title).toBe("New");
   });
@@ -111,21 +132,28 @@ describe("notes: updateNote", () => {
   test("non-author cannot update a note even if shared on the song", async () => {
     const { controller } = setup([baseSong], [note]);
     await expect(
-      controller.updateNote("n1", { title: "Hijack" }, SHARED),
+      controller.updateNote("song-1", "n1", { title: "Hijack" }, SHARED),
     ).rejects.toMatchObject({ status: 403 });
   });
 
   test("missing note returns 404", async () => {
     const { controller } = setup([baseSong]);
     await expect(
-      controller.updateNote("ghost", { title: "x" }, OWNER),
+      controller.updateNote("song-1", "ghost", { title: "x" }, OWNER),
     ).rejects.toMatchObject({ status: 404 });
   });
 
   test("toggling hidden persists", async () => {
     const { controller, notesStore } = setup([baseSong], [note]);
-    await controller.updateNote("n1", { hidden: true }, OWNER);
+    await controller.updateNote("song-1", "n1", { hidden: true }, OWNER);
     expect(notesStore._data.get("n1")!.hidden).toBe(true);
+  });
+
+  test("updating a note with mismatched songId throws 400", async () => {
+    const { controller } = setup([baseSong], [note]);
+    await expect(
+      controller.updateNote("wrong-song", "n1", { title: "New" }, OWNER),
+    ).rejects.toMatchObject({ status: 400 });
   });
 });
 
@@ -141,12 +169,29 @@ describe("notes: deleteNote", () => {
 
   test("author can delete their own note", async () => {
     const { controller, notesStore } = setup([baseSong], [note]);
-    await controller.deleteNote("n1", OWNER);
+    await controller.deleteNote("song-1", "n1", OWNER);
     expect(notesStore._data.has("n1")).toBe(false);
   });
 
   test("non-author cannot delete", async () => {
     const { controller } = setup([baseSong], [note]);
-    await expect(controller.deleteNote("n1", SHARED)).rejects.toMatchObject({ status: 403 });
+    await expect(controller.deleteNote("song-1", "n1", SHARED)).rejects.toMatchObject({ status: 403 });
+  });
+
+  test("deleting a note with mismatched songId throws 400", async () => {
+    const { controller } = setup([baseSong], [note]);
+    await expect(
+      controller.deleteNote("wrong-song", "n1", OWNER),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  test("throws if store does not implement remove", async () => {
+    const { songStore } = setup([baseSong]);
+    const notesStore = makeMockStore<SongNote>([note]);
+    delete (notesStore as any).remove;
+    const controller = notesFactory(songStore, notesStore);
+    await expect(
+      controller.deleteNote("song-1", "n1", OWNER),
+    ).rejects.toThrow("Store does not support removal");
   });
 });

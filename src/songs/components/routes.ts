@@ -460,7 +460,7 @@ router.patch(
   validate(SongNotePatchSchema),
   (req: Request, res: Response, next: NextFunction) => {
     notesController
-      .updateNote(req.params.noteId, req.body, getUid(req))
+      .updateNote(req.params.id, req.params.noteId, req.body, getUid(req))
       .then((item) => success(req, res, item, 200))
       .catch(next);
   },
@@ -479,7 +479,7 @@ router.delete(
   requireAuth,
   (req: Request, res: Response, next: NextFunction) => {
     notesController
-      .deleteNote(req.params.noteId, getUid(req))
+      .deleteNote(req.params.id, req.params.noteId, getUid(req))
       .then((item) => success(req, res, item, 200))
       .catch(next);
   },

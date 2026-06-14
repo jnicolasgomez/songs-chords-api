@@ -5,11 +5,10 @@ export type MockSongStore = Store<Song> & {
   remove: (table: string, id: string) => Promise<void>;
 };
 
-let autoId = 0;
-
 export function makeMockStore<T extends { id?: string } = Song>(
   seed: T[] = [],
 ): Store<T> & { _data: Map<string, T>; remove: (table: string, id: string) => Promise<void> } {
+  let autoId = 0;
   const data = new Map<string, T>(seed.map((s) => [s.id as string, s]));
   return {
     async list() {

@@ -20,14 +20,18 @@ export default function (songStore?: Store<Song>, notesStore?: Store<SongNote>) 
     }
   }
 
-  async function getOwnedNote(noteId: string, uid: string): Promise<SongNote> {
+  async function getOwnedNote(noteId: string, songId: string, uid: string): Promise<SongNote> {
     const note = await notes.get(NOTES_TABLE, noteId);
     if (!note) throw Object.assign(new Error("Note not found"), { status: 404 });
     if (note.userId !== uid) throw Object.assign(new Error("FORBIDDEN"), { status: 403 });
+    if (note.songId !== songId) {
+      throw Object.assign(new Error("Note does not belong to this song"), { status: 400 });
+    }
     return note;
   }
 
   async function listNotes(songId: string, uid: string): Promise<SongNote[]> {
+    await assertCanReadSong(songId, uid);
     return notes.query(NOTES_TABLE, [
       ["songId", "==", songId],
       ["userId", "==", uid],
@@ -36,12 +40,15 @@ export default function (songStore?: Store<Song>, notesStore?: Store<SongNote>) 
 
   async function createNote(songId: string, body: SongNotePatch, uid: string): Promise<SongNote> {
     await assertCanReadSong(songId, uid);
+    if (body.icon === undefined || body.title === undefined) {
+      throw Object.assign(new Error("Icon and title are required"), { status: 400 });
+    }
     const now = Date.now();
     const toCreate: SongNote = {
       songId,
       userId: uid,
-      icon: body.icon!,
-      title: body.title!,
+      icon: body.icon,
+      title: body.title,
       text: body.text ?? "",
       hidden: body.hidden ?? false,
       createdAt: now,
@@ -51,8 +58,8 @@ export default function (songStore?: Store<Song>, notesStore?: Store<SongNote>) 
     return { ...toCreate, id };
   }
 
-  async function updateNote(noteId: string, body: SongNotePatch, uid: string): Promise<SongNote> {
-    const existing = await getOwnedNote(noteId, uid);
+  async function updateNote(songId: string, noteId: string, body: SongNotePatch, uid: string): Promise<SongNote> {
+    const existing = await getOwnedNote(noteId, songId, uid);
     const merged: SongNote = {
       ...existing,
       ...(body.icon !== undefined ? { icon: body.icon } : {}),
@@ -65,12 +72,13 @@ export default function (songStore?: Store<Song>, notesStore?: Store<SongNote>) 
     return merged;
   }
 
-  async function deleteNote(noteId: string, uid: string): Promise<{ id: string }> {
-    await getOwnedNote(noteId, uid);
+  async function deleteNote(songId: string, noteId: string, uid: string): Promise<{ id: string }> {
+    await getOwnedNote(noteId, songId, uid);
     const removable = notes as unknown as { remove?: (t: string, id: string) => Promise<void> };
-    if (typeof removable.remove === "function") {
-      await removable.remove(NOTES_TABLE, noteId);
+    if (typeof removable.remove !== "function") {
+      throw new Error("Store does not support removal");
     }
+    await removable.remove(NOTES_TABLE, noteId);
     return { id: noteId };
   }
 
