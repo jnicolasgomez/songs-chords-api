@@ -1,5 +1,50 @@
 import { z } from "zod";
 
+export const SONG_NOTE_ICONS = [
+  "mdi-lightbulb",
+  "mdi-alert",
+  "mdi-music-note",
+  "mdi-pencil",
+  "mdi-star",
+  "mdi-bookmark",
+  "mdi-comment",
+  "mdi-headphones",
+  "mdi-piano",
+  "mdi-microphone",
+  "mdi-metronome",
+  "mdi-information",
+] as const;
+
+export const SongNoteSchema = z.object({
+  id: z.string().optional(),
+  songId: z.string().optional(),
+  userId: z.string().optional(),
+  icon: z.enum(SONG_NOTE_ICONS),
+  title: z.string().min(1).max(80),
+  text: z.string().max(4000),
+  hidden: z.boolean().optional(),
+  createdAt: z.number().optional(),
+  updatedAt: z.number().optional(),
+});
+
+export const SongNoteCreateSchema = z.object({
+  icon: z.enum(SONG_NOTE_ICONS),
+  title: z.string().min(1).max(80),
+  text: z.string().max(4000).optional(),
+  hidden: z.boolean().optional(),
+});
+
+export const SongNotePatchSchema = z.object({
+  icon: z.enum(SONG_NOTE_ICONS).optional(),
+  title: z.string().min(1).max(80).optional(),
+  text: z.string().max(4000).optional(),
+  hidden: z.boolean().optional(),
+});
+
+export type SongNote = z.infer<typeof SongNoteSchema>;
+export type SongNoteCreate = z.infer<typeof SongNoteCreateSchema>;
+export type SongNotePatch = z.infer<typeof SongNotePatchSchema>;
+
 export const SongDetailsSchema = z.object({
   bpm: z.number().optional(),
   key: z.string().optional(),

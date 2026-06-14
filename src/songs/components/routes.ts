@@ -5,8 +5,9 @@ import { getUid } from "../../middleware/authz.ts";
 import { writeLimiter } from "../../middleware/rateLimit.ts";
 import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
-import { SongSchema } from "../types/types.ts";
+import { SongSchema, SongNoteCreateSchema, SongNotePatchSchema } from "../types/types.ts";
 import controller from "./index.ts";
+import notesController from "./notesIndex.ts";
 import usersController from "../../users/components/index.ts";
 
 /**
@@ -399,5 +400,89 @@ router.delete("/songs/:id/collaborators/:uid", requireAuth, (req: Request, res: 
     .then((item) => success(req, res, item, 200))
     .catch(next);
 });
+
+/**
+ * @swagger
+ * /api/songs/{id}/notes:
+ *   get:
+ *     summary: List the authenticated user's private notes for a song
+ *     tags: [Songs]
+ *     security: [{ BearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: User's notes for the song }
+ */
+router.get("/songs/:id/notes", requireAuth, (req: Request, res: Response, next: NextFunction) => {
+  notesController
+    .listNotes(req.params.id, getUid(req))
+    .then((item) => success(req, res, item, 200))
+    .catch(next);
+});
+
+/**
+ * @swagger
+ * /api/songs/{id}/notes:
+ *   post:
+ *     summary: Create a private note on a song for the authenticated user
+ *     tags: [Songs]
+ *     security: [{ BearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: string } }
+ *     responses:
+ *       201: { description: Note created }
+ */
+router.post(
+  "/songs/:id/notes",
+  requireAuth,
+  writeLimiter,
+  validate(SongNoteCreateSchema),
+  (req: Request, res: Response, next: NextFunction) => {
+    notesController
+      .createNote(req.params.id, req.body, getUid(req))
+      .then((item) => success(req, res, item, 201))
+      .catch(next);
+  },
+);
+
+/**
+ * @swagger
+ * /api/songs/{id}/notes/{noteId}:
+ *   patch:
+ *     summary: Update a private note (only by its author)
+ *     tags: [Songs]
+ *     security: [{ BearerAuth: [] }]
+ */
+router.patch(
+  "/songs/:id/notes/:noteId",
+  requireAuth,
+  writeLimiter,
+  validate(SongNotePatchSchema),
+  (req: Request, res: Response, next: NextFunction) => {
+    notesController
+      .updateNote(req.params.id, req.params.noteId, req.body, getUid(req))
+      .then((item) => success(req, res, item, 200))
+      .catch(next);
+  },
+);
+
+/**
+ * @swagger
+ * /api/songs/{id}/notes/{noteId}:
+ *   delete:
+ *     summary: Delete a private note (only by its author)
+ *     tags: [Songs]
+ *     security: [{ BearerAuth: [] }]
+ */
+router.delete(
+  "/songs/:id/notes/:noteId",
+  requireAuth,
+  (req: Request, res: Response, next: NextFunction) => {
+    notesController
+      .deleteNote(req.params.id, req.params.noteId, getUid(req))
+      .then((item) => success(req, res, item, 200))
+      .catch(next);
+  },
+);
 
 export default router;
