@@ -166,6 +166,22 @@ describe("patchSong", () => {
     expect(updated.user_uid).toEqual(OWNER); // Should not be modified
     expect((updated as any).foo).toBeUndefined();
   });
+
+  test("allows patching soundcloudUrl and persists it", async () => {
+    const store = makeMockStore([{ ...baseSong }]);
+    const controller = controllerFactory(store);
+
+    await controller.patchSong(
+      "song-1",
+      { 
+        soundcloudUrl: "https://soundcloud.com/artist/track",
+      },
+      OWNER,
+    );
+
+    const updated = store._data.get("song-1")!;
+    expect(updated.soundcloudUrl).toEqual("https://soundcloud.com/artist/track");
+  });
 });
 
 describe("shareSong / unshareSong", () => {

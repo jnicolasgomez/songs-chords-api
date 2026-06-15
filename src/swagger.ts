@@ -39,6 +39,7 @@ const options: swaggerJsdoc.Options = {
             tags: { type: "array", items: { type: "string" }, example: ["rock", "acoustic"] },
             spotifyUrl: { type: "string", example: "https://open.spotify.com/track/..." },
             youtubeUrl: { type: "string", example: "https://www.youtube.com/watch?v=..." },
+            soundcloudUrl: { type: "string", example: "https://soundcloud.com/..." },
             shared_with: { type: "array", items: { type: "string" }, example: ["uid1", "uid2"], description: "Firebase UIDs of collaborators who can view and edit this song" },
           },
           required: ["id", "title", "chords-text"],
