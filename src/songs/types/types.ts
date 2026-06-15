@@ -68,6 +68,7 @@ export const SongSchema = z.object({
   tags: z.array(z.string()).optional(),
   spotifyUrl: z.string().optional(),
   youtubeUrl: z.string().optional(),
+  soundcloudUrl: z.string().optional(),
   band_id: z.string().optional(),
   shared_with: z.array(z.string()).optional(),
 }).passthrough();
