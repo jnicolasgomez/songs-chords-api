@@ -124,6 +124,102 @@ describe("getProfile", () => {
   });
 });
 
+describe("recordPractice", () => {
+  test("first practice starts the streak at 1", async () => {
+    const store = makeMockStore();
+    const controller = controllerFactory(store);
+
+    const result = await controller.recordPractice("u1", "2026-06-25");
+
+    expect(result).toMatchObject({
+      currentStreak: 1,
+      longestStreak: 1,
+      lastPracticedDate: "2026-06-25",
+    });
+  });
+
+  test("consecutive day increments the streak", async () => {
+    const store = makeMockStore([
+      { uid: "u1", roles: [], currentStreak: 3, longestStreak: 3, lastPracticedDate: "2026-06-24" },
+    ]);
+    const controller = controllerFactory(store);
+
+    const result = await controller.recordPractice("u1", "2026-06-25");
+
+    expect(result.currentStreak).toBe(4);
+    expect(result.longestStreak).toBe(4);
+  });
+
+  test("same-day repeat is idempotent", async () => {
+    const store = makeMockStore([
+      { uid: "u1", roles: [], currentStreak: 4, longestStreak: 4, lastPracticedDate: "2026-06-25" },
+    ]);
+    const controller = controllerFactory(store);
+
+    const result = await controller.recordPractice("u1", "2026-06-25");
+
+    expect(result.currentStreak).toBe(4);
+  });
+
+  test("a gap of 2+ days resets the streak to 1 but keeps longest", async () => {
+    const store = makeMockStore([
+      { uid: "u1", roles: [], currentStreak: 5, longestStreak: 5, lastPracticedDate: "2026-06-22" },
+    ]);
+    const controller = controllerFactory(store);
+
+    const result = await controller.recordPractice("u1", "2026-06-25");
+
+    expect(result.currentStreak).toBe(1);
+    expect(result.longestStreak).toBe(5);
+  });
+
+  test("preserves existing roles via merge upsert", async () => {
+    const store = makeMockStore([{ uid: "u1", roles: ["drummer"] }]);
+    const controller = controllerFactory(store);
+
+    await controller.recordPractice("u1", "2026-06-25");
+
+    expect(store._data.get("u1")?.roles).toEqual(["drummer"]);
+  });
+
+  test("rejects an invalid date with 400", async () => {
+    const controller = controllerFactory(makeMockStore());
+
+    await expect(controller.recordPractice("u1", "06/25/2026")).rejects.toMatchObject({
+      status: 400,
+    });
+    await expect(controller.recordPractice("u1", 20260625 as unknown)).rejects.toMatchObject({
+      status: 400,
+    });
+  });
+});
+
+describe("getPractice", () => {
+  test("returns zeros and null when the user has never practiced", async () => {
+    const controller = controllerFactory(makeMockStore());
+
+    await expect(controller.getPractice("nobody")).resolves.toEqual({
+      currentStreak: 0,
+      longestStreak: 0,
+      lastPracticedDate: null,
+    });
+  });
+
+  test("returns stored streak fields", async () => {
+    const controller = controllerFactory(
+      makeMockStore([
+        { uid: "u1", roles: [], currentStreak: 7, longestStreak: 9, lastPracticedDate: "2026-06-25" },
+      ]),
+    );
+
+    await expect(controller.getPractice("u1")).resolves.toEqual({
+      currentStreak: 7,
+      longestStreak: 9,
+      lastPracticedDate: "2026-06-25",
+    });
+  });
+});
+
 describe("getByUid", () => {
   test("returns auth record fields without roles", async () => {
     const controller = controllerFactory(

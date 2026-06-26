@@ -211,4 +211,111 @@ router.put(
   },
 );
 
+/**
+ * @swagger
+ * /api/users/{uid}/practice:
+ *   get:
+ *     summary: Get the authenticated user's practice streak
+ *     description: Returns the user's current streak, longest streak, and last practiced date. Zeros / null when the user has never practiced. The path uid must match the authenticated uid.
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: uid
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Firebase UID (must match the caller)
+ *     responses:
+ *       200:
+ *         description: Practice streak retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 currentStreak:
+ *                   type: integer
+ *                 longestStreak:
+ *                   type: integer
+ *                 lastPracticedDate:
+ *                   type: string
+ *                   nullable: true
+ *                   example: "2026-06-25"
+ *       403:
+ *         description: Caller is not the streak owner
+ */
+router.get(
+  "/users/:uid/practice",
+  requireAuth,
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (getUid(req) !== req.params.uid) {
+        return next(Object.assign(new Error("FORBIDDEN"), { status: 403 }));
+      }
+      controller
+        .getPractice(req.params.uid)
+        .then((p) => success(req, res, p, 200))
+        .catch(next);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/**
+ * @swagger
+ * /api/users/{uid}/practice:
+ *   post:
+ *     summary: Record a practice for the authenticated user
+ *     description: Records a practice on the supplied local date (YYYY-MM-DD) and returns the updated streak. Idempotent for repeat practices on the same date. The path uid must match the authenticated uid.
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: uid
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Firebase UID (must match the caller)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [date]
+ *             properties:
+ *               date:
+ *                 type: string
+ *                 description: Client local date
+ *                 example: "2026-06-25"
+ *     responses:
+ *       200:
+ *         description: Practice recorded
+ *       400:
+ *         description: Invalid date payload
+ *       403:
+ *         description: Caller is not the streak owner
+ */
+router.post(
+  "/users/:uid/practice",
+  requireAuth,
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (getUid(req) !== req.params.uid) {
+        return next(Object.assign(new Error("FORBIDDEN"), { status: 403 }));
+      }
+      controller
+        .recordPractice(req.params.uid, req.body?.date)
+        .then((p) => success(req, res, p, 200))
+        .catch(next);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 export default router;
