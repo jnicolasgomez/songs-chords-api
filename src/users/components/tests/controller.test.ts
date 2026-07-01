@@ -182,6 +182,15 @@ describe("recordPractice", () => {
     expect(store._data.get("u1")?.roles).toEqual(["drummer"]);
   });
 
+  test("first practice initializes empty roles", async () => {
+    const store = makeMockStore();
+    const controller = controllerFactory(store);
+
+    await controller.recordPractice("u1", "2026-06-25");
+
+    expect(store._data.get("u1")?.roles).toEqual([]);
+  });
+
   test("rejects an invalid date with 400", async () => {
     const controller = controllerFactory(makeMockStore());
 
@@ -189,6 +198,9 @@ describe("recordPractice", () => {
       status: 400,
     });
     await expect(controller.recordPractice("u1", 20260625 as unknown)).rejects.toMatchObject({
+      status: 400,
+    });
+    await expect(controller.recordPractice("u1", "2026-02-30")).rejects.toMatchObject({
       status: 400,
     });
   });

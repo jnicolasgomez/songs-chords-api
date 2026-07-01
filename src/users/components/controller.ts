@@ -132,11 +132,17 @@ export default function (selectedStore?: Store<UserProfile>) {
     if (typeof date !== "string" || !DATE_RE.test(date)) {
       throw Object.assign(new Error("date must be a YYYY-MM-DD string"), { status: 400 });
     }
+    const [y, m, d] = date.split("-").map(Number);
+    const parsed = new Date(Date.UTC(y, m - 1, d));
+    if (parsed.getUTCFullYear() !== y || parsed.getUTCMonth() !== m - 1 || parsed.getUTCDate() !== d) {
+      throw Object.assign(new Error("date must be a YYYY-MM-DD string"), { status: 400 });
+    }
     const profile = (await injectedStore.get(USERS_TABLE, uid)) as UserProfile | null;
     const streak = nextStreak(profile ?? {}, date);
     await injectedStore.upsert(USERS_TABLE, {
       id: uid,
       uid,
+      roles: profile?.roles ?? [],
       ...streak,
       updated_at: Date.now(),
     });
