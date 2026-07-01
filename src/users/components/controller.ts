@@ -19,12 +19,51 @@ export interface UserProfile {
   uid: string;
   roles: BandRole[];
   updated_at?: number;
+  currentStreak?: number; // streak as of lastPracticedDate
+  longestStreak?: number; // best streak ever reached
+  lastPracticedDate?: string; // "YYYY-MM-DD" (client local date)
 }
 
 export interface UserInfo {
   uid: string;
   email?: string;
   displayName?: string;
+}
+
+export interface PracticeRecord {
+  currentStreak: number;
+  longestStreak: number;
+  lastPracticedDate: string | null;
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Shift a "YYYY-MM-DD" date string by a number of days using UTC math (TZ-independent). */
+function addDays(date: string, days: number): string {
+  return new Date(new Date(`${date}T00:00:00Z`).getTime() + days * 86400000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+/**
+ * Pure streak transition. Given the previously stored streak fields and the
+ * client's local `today` (YYYY-MM-DD), returns the next streak state.
+ */
+export function nextStreak(
+  prev: Pick<UserProfile, "currentStreak" | "longestStreak" | "lastPracticedDate">,
+  today: string,
+): { currentStreak: number; longestStreak: number; lastPracticedDate: string } {
+  const yesterday = addDays(today, -1);
+  let current: number;
+  if (prev.lastPracticedDate === today) {
+    current = prev.currentStreak ?? 1; // idempotent same-day
+  } else if (prev.lastPracticedDate === yesterday) {
+    current = (prev.currentStreak ?? 0) + 1;
+  } else {
+    current = 1; // first practice or streak broken → restart at 1
+  }
+  const longest = Math.max(prev.longestStreak ?? 0, current);
+  return { currentStreak: current, longestStreak: longest, lastPracticedDate: today };
 }
 
 export default function (selectedStore?: Store<UserProfile>) {
@@ -80,5 +119,35 @@ export default function (selectedStore?: Store<UserProfile>) {
     return { roles: validated };
   }
 
-  return { lookupByEmail, getByUid, getProfile, updateProfile };
+  async function getPractice(uid: string): Promise<PracticeRecord> {
+    const profile = (await injectedStore.get(USERS_TABLE, uid)) as UserProfile | null;
+    return {
+      currentStreak: profile?.currentStreak ?? 0,
+      longestStreak: profile?.longestStreak ?? 0,
+      lastPracticedDate: profile?.lastPracticedDate ?? null,
+    };
+  }
+
+  async function recordPractice(uid: string, date: unknown): Promise<PracticeRecord> {
+    if (typeof date !== "string" || !DATE_RE.test(date)) {
+      throw Object.assign(new Error("date must be a YYYY-MM-DD string"), { status: 400 });
+    }
+    const [y, m, d] = date.split("-").map(Number);
+    const parsed = new Date(Date.UTC(y, m - 1, d));
+    if (parsed.getUTCFullYear() !== y || parsed.getUTCMonth() !== m - 1 || parsed.getUTCDate() !== d) {
+      throw Object.assign(new Error("date must be a YYYY-MM-DD string"), { status: 400 });
+    }
+    const profile = (await injectedStore.get(USERS_TABLE, uid)) as UserProfile | null;
+    const streak = nextStreak(profile ?? {}, date);
+    await injectedStore.upsert(USERS_TABLE, {
+      id: uid,
+      uid,
+      roles: profile?.roles ?? [],
+      ...streak,
+      updated_at: Date.now(),
+    });
+    return { ...streak };
+  }
+
+  return { lookupByEmail, getByUid, getProfile, updateProfile, getPractice, recordPractice };
 }
