@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction } from "express";
-import { conditionalAuth, requireAuth } from "../../middleware/session.ts";
-import { getUid } from "../../middleware/authz.ts";
+import { requireAuth, optionalAuth } from "../../middleware/session.ts";
+import { getUid, getOptionalUid } from "../../middleware/authz.ts";
 import { writeLimiter } from "../../middleware/rateLimit.ts";
 import { validate } from "../../middleware/validate.ts";
 import { success } from "../../network/response.ts";
@@ -24,6 +24,17 @@ type SetlistRequest = Request & {
     bandId?: string;
   };
 }
+
+// Listing every setlist of a user or a band exposes private ones, so those two
+// query shapes require a verified token. The unscoped listing stays public
+// because it only ever returns public setlists.
+const authForScopedQueries = (req: Request, res: Response, next: NextFunction): void => {
+  if (req.query.userId || req.query.bandId) {
+    requireAuth(req, res, next);
+    return;
+  }
+  next();
+};
 
 /**
  * @swagger
@@ -109,14 +120,20 @@ router.post("/setlists", requireAuth, writeLimiter, validate(SetlistSchema), (re
  * @swagger
  * /api/setlists:
  *   get:
- *     summary: List all public setlists, or filter by userId
+ *     summary: List all public setlists, or filter by userId or bandId
+ *     description: The unscoped listing is public. Filtering by userId or bandId requires a valid token — userId must match the token holder, and bandId requires membership of that band.
  *     tags: [Setlists]
  *     parameters:
  *       - in: query
  *         name: userId
  *         schema:
  *           type: string
- *         description: Filter setlists by Firebase user UID
+ *         description: Filter setlists by Firebase user UID. Must match the authenticated user.
+ *       - in: query
+ *         name: bandId
+ *         schema:
+ *           type: string
+ *         description: Filter setlists by band. Requires membership of the band.
  *     responses:
  *       200:
  *         description: List of setlists
@@ -126,17 +143,27 @@ router.post("/setlists", requireAuth, writeLimiter, validate(SetlistSchema), (re
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Setlist'
+ *       403:
+ *         description: Missing/invalid JWT, requesting another user's setlists, or not a member of the band
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.get("/setlists", conditionalAuth, (req: SetlistRequest, res: Response, next: NextFunction) => {
+router.get("/setlists", authForScopedQueries, (req: SetlistRequest, res: Response, next: NextFunction) => {
   const { userId, bandId } = req.query;
   if (bandId) {
     controller
-      .setlistsByBand(bandId)
+      .setlistsByBand(bandId, getUid(req))
       .then((item) => {
         success(req, res, item, 200);
       })
       .catch(next);
   } else if (userId) {
+    // Only the token holder's own scope may be requested.
+    if (userId !== getUid(req)) {
+      return next(Object.assign(new Error("FORBIDDEN"), { status: 403 }));
+    }
     controller
       .setlistsByUser(userId)
       .then((item) => {
@@ -158,7 +185,11 @@ router.get("/setlists", conditionalAuth, (req: SetlistRequest, res: Response, ne
  * /api/setlists/{id}:
  *   get:
  *     summary: Get a setlist by ID
+ *     description: Public setlists are readable by anyone. A private setlist requires a token belonging to its owner, a collaborator in shared_with, or a member of its band; otherwise the response is 404 so the endpoint never reveals that the id exists.
  *     tags: [Setlists]
+ *     security:
+ *       - BearerAuth: []
+ *       - {}
  *     parameters:
  *       - in: path
  *         name: id
@@ -173,10 +204,16 @@ router.get("/setlists", conditionalAuth, (req: SetlistRequest, res: Response, ne
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Setlist'
+ *       404:
+ *         description: Setlist not found, or private and not readable by the caller
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-router.get("/setlists/:id", (req: Request, res: Response, next: NextFunction) => {
+router.get("/setlists/:id", optionalAuth, (req: Request, res: Response, next: NextFunction) => {
   controller
-    .setlistById(req.params.id)
+    .setlistById(req.params.id, getOptionalUid(req))
     .then((item) => {
       success(req, res, item, 200);
     })

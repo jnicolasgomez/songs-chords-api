@@ -13,6 +13,12 @@ export function getUid(req: Request): string {
   return uid;
 }
 
+// Like getUid, but for routes served through optionalAuth: returns undefined
+// for anonymous callers instead of throwing.
+export function getOptionalUid(req: Request): string | undefined {
+  return (req as any).uid as string | undefined;
+}
+
 export function canEdit(resource: OwnedResource | null | undefined, uid: string): boolean {
   if (!resource) return false;
   if (resource.user_uid === uid) return true;

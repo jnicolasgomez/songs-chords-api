@@ -1,7 +1,8 @@
 import * as store from "../../store/mongoStore.ts";
 import type { Store } from "../../songs/types/types.ts";
 import type { Setlist, SetlistItem } from "../types/types.ts";
-import { assertCanEdit, assertOwner } from "../../middleware/authz.ts";
+import { assertCanEdit, assertOwner, canEdit } from "../../middleware/authz.ts";
+import type { Band } from "../../bands/types/types.ts";
 
 function songIdsFromItems(items: SetlistItem[]): string[] {
   return items
@@ -10,11 +11,28 @@ function songIdsFromItems(items: SetlistItem[]): string[] {
 }
 
 const SETLISTS_TABLE = process.env.LISTS_TABLE_NAME || "lists";
+const BANDS_TABLE = process.env.BANDS_TABLE_NAME || "bands";
 
-export default function (injectedStore?: Store<Setlist>) {
+export default function (injectedStore?: Store<Setlist>, injectedBandsStore?: Store<Band>) {
   let selectedStore: Store<Setlist> = store as unknown as Store<Setlist>;
   // If no store is injected, use the default store
   selectedStore = injectedStore || selectedStore;
+  const bandsStore: Store<Band> = injectedBandsStore || (store as unknown as Store<Band>);
+
+  async function isBandMember(bandId: string | undefined, uid: string | undefined): Promise<boolean> {
+    if (!bandId || !uid) return false;
+    const band = await bandsStore.get(BANDS_TABLE, bandId);
+    return Array.isArray(band?.members) && band.members.includes(uid);
+  }
+
+  // A setlist is readable when it is public, or when the caller owns it, has it
+  // shared with them, or belongs to the band it was created for.
+  async function canView(setlist: Setlist, uid: string | undefined): Promise<boolean> {
+    if (setlist.private !== true) return true;
+    if (!uid) return false;
+    if (canEdit(setlist, uid)) return true;
+    return isBandMember(setlist.band_id, uid);
+  }
 
   async function getSetlists(): Promise<Setlist[]> {
     let setlists = (await selectedStore.list(SETLISTS_TABLE)).reverse();
@@ -34,9 +52,16 @@ export default function (injectedStore?: Store<Setlist>) {
     return setlists;
   }
 
-  async function setlistById(id: string): Promise<Setlist[]> {
-    let setlists = await selectedStore.query(SETLISTS_TABLE, { id });
-    return setlists;
+  // Returns a single-element array to preserve the historical response shape.
+  // A private setlist the caller may not read is reported as 404 rather than
+  // 403, so the endpoint never confirms that an unreachable id exists.
+  async function setlistById(id: string, uid?: string): Promise<Setlist[]> {
+    const setlists = await selectedStore.query(SETLISTS_TABLE, { id });
+    const setlist = setlists[0];
+    if (!setlist || !(await canView(setlist, uid))) {
+      throw Object.assign(new Error(`Setlist ${id} not found`), { status: 404 });
+    }
+    return [setlist];
   }
 
   async function publicSetlists(): Promise<Setlist[]> {
@@ -79,7 +104,12 @@ export default function (injectedStore?: Store<Setlist>) {
     return result;
   }
 
-  async function setlistsByBand(bandId: string): Promise<Setlist[]> {
+  // Band setlists are visible to band members only — the band roster is the
+  // access list, so a non-member gets nothing rather than the band's private set.
+  async function setlistsByBand(bandId: string, uid: string): Promise<Setlist[]> {
+    if (!(await isBandMember(bandId, uid))) {
+      throw Object.assign(new Error("FORBIDDEN"), { status: 403 });
+    }
     return selectedStore.query(SETLISTS_TABLE, { band_id: bandId });
   }
 

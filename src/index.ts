@@ -9,7 +9,7 @@ Sentry.init({
 });
 
 import express from "express";
-import type { Application } from "express";
+import type { Application, Request, Response, NextFunction } from "express";
 import morgan from "morgan";
 import apiRoutes from "./routes/index.ts";
 import logger, { morganStream } from "./utils/logger.ts";
@@ -21,6 +21,7 @@ import { initializeApp } from "firebase-admin/app";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swagger.ts";
 import { globalLimiter } from "./middleware/rateLimit.ts";
+import errors from "./network/errors.ts";
 
 const port: number = process.env.PORT ? parseInt(process.env.PORT) : 3001;
 const whitelist: string[] = process.env.CORS_WHITELIST
@@ -76,6 +77,14 @@ if (!isProduction) {
 
 // Sentry error handler must be after routes and before other error handlers
 Sentry.setupExpressErrorHandler(app);
+
+// Render forwarded errors as the API's JSON envelope instead of Express's default
+// HTML page, which leaks a stack trace outside production. Express only treats a
+// middleware as an error handler when it declares four parameters, so the unused
+// `next` is required here.
+app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+  errors(err, req, res);
+});
 
 app.listen(port, () => {
   logger.info("Server started", { port, env: process.env.NODE_ENV || "development" });
