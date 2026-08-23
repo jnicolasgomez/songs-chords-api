@@ -45,8 +45,8 @@ const requireAuth = (req: Request, res: Response, next: NextFunction): void => {
 // through with no uid. A token that is present but invalid is still rejected.
 // Handlers decide what an unauthenticated caller is allowed to see.
 const optionalAuth = (req: Request, res: Response, next: NextFunction): void => {
-  const jwt = req.headers.authorization?.split(" ").pop();
-  if (!jwt) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.toLowerCase().startsWith("bearer")) {
     next();
     return;
   }
