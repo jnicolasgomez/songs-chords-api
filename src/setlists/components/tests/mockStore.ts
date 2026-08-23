@@ -1,5 +1,6 @@
 import type { Store } from "../../../songs/types/types.ts";
 import type { Setlist } from "../../types/types.ts";
+import type { Band } from "../../../bands/types/types.ts";
 
 export type MockStore = Store<Setlist> & { _data: Map<string, Setlist> };
 
@@ -13,6 +14,45 @@ export function makeMockStore(seed: Setlist[] = []): MockStore {
       return data.get(id) ?? null;
     },
     async upsert(_table: string, body: Setlist & { id: string }) {
+      data.set(body.id, body);
+      return { id: body.id };
+    },
+    async query(_table: string, filter: Record<string, unknown>) {
+      if (filter?.id) {
+        const hit = data.get(filter.id as string);
+        return hit ? [hit] : [];
+      }
+      if (filter?.band_id) {
+        return [...data.values()].filter((l) => l.band_id === filter.band_id);
+      }
+      return [...data.values()];
+    },
+    async byUserId() {
+      return [];
+    },
+    async listPublic() {
+      return [];
+    },
+    async byIdsArray() {
+      return [];
+    },
+    async sharedWithUser() {
+      return [];
+    },
+    _data: data,
+  };
+}
+
+export function makeMockBandsStore(seed: Band[] = []): Store<Band> {
+  const data = new Map<string, Band>(seed.map((b) => [b.id!, b]));
+  return {
+    async list() {
+      return [...data.values()];
+    },
+    async get(_table: string, id: string) {
+      return data.get(id) ?? null;
+    },
+    async upsert(_table: string, body: Band & { id: string }) {
       data.set(body.id, body);
       return { id: body.id };
     },
@@ -35,6 +75,5 @@ export function makeMockStore(seed: Setlist[] = []): MockStore {
     async sharedWithUser() {
       return [];
     },
-    _data: data,
   };
 }

@@ -1,7 +1,7 @@
 import controllerFactory from "../controller.ts";
 import { SetlistSchema } from "../../types/types.ts";
 import type { Setlist } from "../../types/types.ts";
-import { makeMockStore } from "./mockStore.ts";
+import { makeMockStore, makeMockBandsStore } from "./mockStore.ts";
 
 // Prevent mongoStore from calling connect() at import time, which logs async
 // errors after tests finish ("Cannot log after tests are done").
@@ -303,5 +303,85 @@ describe("shareSetlist / unshareSetlist", () => {
     await expect(
       controller.unshareSetlist("setlist-1", OTHER, OTHER),
     ).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe("setlistById visibility", () => {
+  const privateSetlist: Setlist = { ...baseSetlist, private: true };
+  const BAND_MEMBER = "u3";
+  const band = { id: "band-1", name: "The Band", created_by: OWNER, members: [OWNER, BAND_MEMBER] };
+
+  test("returns a public setlist to an anonymous caller", async () => {
+    const controller = controllerFactory(makeMockStore([{ ...baseSetlist }]));
+
+    await expect(controller.setlistById("setlist-1")).resolves.toEqual([baseSetlist]);
+  });
+
+  test("hides a private setlist from an anonymous caller", async () => {
+    const controller = controllerFactory(makeMockStore([{ ...privateSetlist }]));
+
+    await expect(controller.setlistById("setlist-1")).rejects.toMatchObject({ status: 404 });
+  });
+
+  test("hides a private setlist from an unrelated user", async () => {
+    const controller = controllerFactory(makeMockStore([{ ...privateSetlist }]));
+
+    await expect(controller.setlistById("setlist-1", OTHER)).rejects.toMatchObject({ status: 404 });
+  });
+
+  test("returns a private setlist to its owner", async () => {
+    const controller = controllerFactory(makeMockStore([{ ...privateSetlist }]));
+
+    await expect(controller.setlistById("setlist-1", OWNER)).resolves.toEqual([privateSetlist]);
+  });
+
+  test("returns a private setlist to a shared collaborator", async () => {
+    const shared: Setlist = { ...privateSetlist, shared_with: [OTHER] };
+    const controller = controllerFactory(makeMockStore([shared]));
+
+    await expect(controller.setlistById("setlist-1", OTHER)).resolves.toEqual([shared]);
+  });
+
+  test("returns a private band setlist to a band member", async () => {
+    const bandSetlist: Setlist = { ...privateSetlist, band_id: "band-1" };
+    const controller = controllerFactory(makeMockStore([bandSetlist]), makeMockBandsStore([band]));
+
+    await expect(controller.setlistById("setlist-1", BAND_MEMBER)).resolves.toEqual([bandSetlist]);
+  });
+
+  test("hides a private band setlist from a non-member", async () => {
+    const bandSetlist: Setlist = { ...privateSetlist, band_id: "band-1" };
+    const controller = controllerFactory(makeMockStore([bandSetlist]), makeMockBandsStore([band]));
+
+    await expect(controller.setlistById("setlist-1", OTHER)).rejects.toMatchObject({ status: 404 });
+  });
+
+  test("reports an unknown id as 404", async () => {
+    const controller = controllerFactory(makeMockStore([{ ...baseSetlist }]));
+
+    await expect(controller.setlistById("nope", OWNER)).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe("setlistsByBand", () => {
+  const band = { id: "band-1", name: "The Band", created_by: OWNER, members: [OWNER] };
+  const bandSetlist: Setlist = { ...baseSetlist, private: true, band_id: "band-1" };
+
+  test("returns the band's setlists to a member", async () => {
+    const controller = controllerFactory(makeMockStore([bandSetlist]), makeMockBandsStore([band]));
+
+    await expect(controller.setlistsByBand("band-1", OWNER)).resolves.toEqual([bandSetlist]);
+  });
+
+  test("rejects a caller who is not in the band", async () => {
+    const controller = controllerFactory(makeMockStore([bandSetlist]), makeMockBandsStore([band]));
+
+    await expect(controller.setlistsByBand("band-1", OTHER)).rejects.toMatchObject({ status: 403 });
+  });
+
+  test("rejects when the band does not exist", async () => {
+    const controller = controllerFactory(makeMockStore([bandSetlist]), makeMockBandsStore([]));
+
+    await expect(controller.setlistsByBand("band-1", OWNER)).rejects.toMatchObject({ status: 403 });
   });
 });
