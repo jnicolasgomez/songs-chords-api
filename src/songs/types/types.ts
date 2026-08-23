@@ -71,6 +71,11 @@ export const SongSchema = z.object({
   soundcloudUrl: z.string().optional(),
   band_id: z.string().optional(),
   shared_with: z.array(z.string()).optional(),
+  // ISO 8601. Stamped by the controller on upsert; absent on songs written
+  // before timestamps existed.
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  updatedBy: z.string().optional(),
 }).passthrough();
 
 export type SongDetails = z.infer<typeof SongDetailsSchema>;

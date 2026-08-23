@@ -100,6 +100,12 @@ export default function (injectedStore?: Store<Setlist>, injectedBandsStore?: St
       incoming.user_uid = uid;
       delete incoming.shared_with;
     }
+    // mongoStore.upsert uses replaceOne, so anything not written here is lost.
+    // createdAt must be carried forward explicitly on every edit (pin toggles
+    // and song reorders all come through this path).
+    const now = new Date().toISOString();
+    incoming.createdAt = existing?.createdAt ?? incoming.createdAt ?? now;
+    incoming.updatedAt = now;
     const result = await selectedStore.upsert(SETLISTS_TABLE, incoming);
     return result;
   }
@@ -143,7 +149,7 @@ export default function (injectedStore?: Store<Setlist>, injectedBandsStore?: St
       songs.push(songId);
     }
     const existingItems = Array.isArray(setlist.items) ? (setlist.items as SetlistItem[]) : null;
-    const updated: Setlist = { ...setlist, songs };
+    const updated: Setlist = { ...setlist, songs, updatedAt: new Date().toISOString() };
     if (existingItems) {
       const alreadyInItems = existingItems.some(
         (it) => it.type === "song" && it.songId === songId

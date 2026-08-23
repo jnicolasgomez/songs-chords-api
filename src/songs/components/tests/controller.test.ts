@@ -212,3 +212,63 @@ describe("shareSong / unshareSong", () => {
     ).rejects.toMatchObject({ status: 403 });
   });
 });
+
+describe("timestamps", () => {
+  const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+  test("stamps createdAt and updatedAt on create", async () => {
+    const store = makeMockStore();
+    const controller = controllerFactory(store);
+
+    await controller.upsertSong({ id: "new-ts", title: "x" }, OWNER);
+
+    const saved = store._data.get("new-ts")!;
+    expect(saved.createdAt).toMatch(ISO);
+    expect(saved.updatedAt).toMatch(ISO);
+  });
+
+  test("preserves the stored createdAt and bumps updatedAt on edit", async () => {
+    const store = makeMockStore([
+      {
+        ...baseSong,
+        createdAt: "2020-01-01T00:00:00.000Z",
+        updatedAt: "2020-01-01T00:00:00.000Z",
+      },
+    ]);
+    const controller = controllerFactory(store);
+
+    await controller.upsertSong({ ...baseSong, title: "Renamed" }, OWNER);
+
+    const saved = store._data.get("song-1")!;
+    expect(saved.createdAt).toBe("2020-01-01T00:00:00.000Z");
+    expect(saved.updatedAt).not.toBe("2020-01-01T00:00:00.000Z");
+    expect(saved.updatedAt).toMatch(ISO);
+  });
+
+  test("ignores a client-supplied createdAt on edit", async () => {
+    const store = makeMockStore([
+      { ...baseSong, createdAt: "2020-01-01T00:00:00.000Z" },
+    ]);
+    const controller = controllerFactory(store);
+
+    await controller.upsertSong(
+      { ...baseSong, createdAt: "2099-01-01T00:00:00.000Z" },
+      OWNER,
+    );
+
+    expect(store._data.get("song-1")!.createdAt).toBe("2020-01-01T00:00:00.000Z");
+  });
+
+  // patchSong relies on Firestore merge:true, so writing createdAt here would
+  // restamp songs that predate timestamps and make them look brand new.
+  test("patchSong bumps updatedAt but never writes createdAt", async () => {
+    const store = makeMockStore([{ ...baseSong }]);
+    const controller = controllerFactory(store);
+
+    await controller.patchSong("song-1", { title: "Patched" }, OWNER);
+
+    const saved = store._data.get("song-1")!;
+    expect(saved.updatedAt).toMatch(ISO);
+    expect("createdAt" in saved).toBe(false);
+  });
+});
