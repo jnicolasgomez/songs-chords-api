@@ -104,7 +104,7 @@ export default function (injectedStore?: Store<Setlist>, injectedBandsStore?: St
     // createdAt must be carried forward explicitly on every edit (pin toggles
     // and song reorders all come through this path).
     const now = new Date().toISOString();
-    incoming.createdAt = existing?.createdAt ?? incoming.createdAt ?? now;
+    incoming.createdAt = existing?.createdAt ?? now;
     incoming.updatedAt = now;
     const result = await selectedStore.upsert(SETLISTS_TABLE, incoming);
     return result;
