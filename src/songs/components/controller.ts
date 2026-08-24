@@ -72,10 +72,13 @@ export default function (selectedStore?: Store<Song>) {
 
   async function upsertSong(body: any, uid: string): Promise<{ id: string }> {
     const incoming: any = { ...body };
+    const now = new Date().toISOString();
+    let existingCreatedAt: string | undefined;
     if (incoming.id) {
       const existing = await injectedStore.get(SONGS_TABLE, incoming.id);
       if (existing) {
         assertCanEdit(existing, uid);
+        existingCreatedAt = existing.createdAt;
         incoming.user_uid = existing.user_uid;
         const isOwner = existing.user_uid === uid;
         if (isOwner && Array.isArray(incoming.shared_with)) {
@@ -93,6 +96,9 @@ export default function (selectedStore?: Store<Song>) {
       incoming.user_uid = uid;
       delete incoming.shared_with;
     }
+    // An edit must never restamp creation time, so the stored value wins.
+    incoming.createdAt = existingCreatedAt ?? now;
+    incoming.updatedAt = now;
     const result = await injectedStore.upsert(SONGS_TABLE, incoming);
     if (incoming.artist) {
       await artistsController.upsertArtist(incoming.artist);
@@ -114,7 +120,11 @@ export default function (selectedStore?: Store<Song>) {
         (filteredBody as any)[field] = body[field as keyof Song];
       }
     }
-    const result = await injectedStore.upsert(SONGS_TABLE, { ...filteredBody, id } as Song);
+    const result = await injectedStore.upsert(SONGS_TABLE, {
+      ...filteredBody,
+      id,
+      updatedAt: new Date().toISOString(),
+    } as Song);
     if (body.artist) {
       await artistsController.upsertArtist(body.artist);
     }

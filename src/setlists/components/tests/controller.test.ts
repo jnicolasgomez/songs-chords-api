@@ -385,3 +385,78 @@ describe("setlistsByBand", () => {
     await expect(controller.setlistsByBand("band-1", OWNER)).rejects.toMatchObject({ status: 403 });
   });
 });
+
+describe("setlist timestamps", () => {
+  const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+  test("stamps createdAt and updatedAt on create", async () => {
+    const store = makeMockStore();
+    const controller = controllerFactory(store);
+
+    await controller.upsertSetlist({ ...baseSetlist, id: "new-ts" }, OWNER);
+
+    const saved = store._data.get("new-ts")!;
+    expect(saved.createdAt).toMatch(ISO);
+    expect(saved.updatedAt).toMatch(ISO);
+  });
+
+  test("preserves the stored createdAt and bumps updatedAt on edit", async () => {
+    const store = makeMockStore([
+      {
+        ...baseSetlist,
+        createdAt: "2020-01-01T00:00:00.000Z",
+        updatedAt: "2020-01-01T00:00:00.000Z",
+      },
+    ]);
+    const controller = controllerFactory(store);
+
+    await controller.upsertSetlist({ ...baseSetlist, title: "Renamed" }, OWNER);
+
+    const saved = store._data.get("setlist-1")!;
+    expect(saved.createdAt).toBe("2020-01-01T00:00:00.000Z");
+    expect(saved.updatedAt).not.toBe("2020-01-01T00:00:00.000Z");
+  });
+
+  // mongoStore.upsert replaces the whole document, so a pin toggle that does not
+  // carry createdAt forward would silently erase it.
+  test("keeps createdAt through a pin toggle", async () => {
+    const store = makeMockStore([
+      { ...baseSetlist, createdAt: "2020-01-01T00:00:00.000Z" },
+    ]);
+    const controller = controllerFactory(store);
+
+    await controller.upsertSetlist({ ...baseSetlist, pinned: true }, OWNER);
+
+    const saved = store._data.get("setlist-1")!;
+    expect(saved.pinned).toBe(true);
+    expect(saved.createdAt).toBe("2020-01-01T00:00:00.000Z");
+  });
+
+  test("ignores a client-supplied createdAt on edit", async () => {
+    const store = makeMockStore([
+      { ...baseSetlist, createdAt: "2020-01-01T00:00:00.000Z" },
+    ]);
+    const controller = controllerFactory(store);
+
+    await controller.upsertSetlist(
+      { ...baseSetlist, createdAt: "2099-01-01T00:00:00.000Z" },
+      OWNER,
+    );
+
+    expect(store._data.get("setlist-1")!.createdAt).toBe("2020-01-01T00:00:00.000Z");
+  });
+
+  test("addSongToSetlist bumps updatedAt and keeps createdAt", async () => {
+    const store = makeMockStore([
+      { ...baseSetlist, songs: ["s1"], createdAt: "2020-01-01T00:00:00.000Z" },
+    ]);
+    const controller = controllerFactory(store);
+
+    await controller.addSongToSetlist("setlist-1", "s2", OWNER);
+
+    const saved = store._data.get("setlist-1")!;
+    expect(saved.songs).toEqual(["s1", "s2"]);
+    expect(saved.createdAt).toBe("2020-01-01T00:00:00.000Z");
+    expect(saved.updatedAt).toMatch(ISO);
+  });
+});

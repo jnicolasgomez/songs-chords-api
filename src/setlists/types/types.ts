@@ -35,6 +35,10 @@ export const SetlistSchema = z.looseObject({
   shared_with: z.array(z.string()).optional(),
   show_date: z.string().optional(),
   pinned: z.boolean().optional(),
+  // ISO 8601. Stamped by the controller on upsert; absent on setlists written
+  // before timestamps existed — those fall back to the Mongo _id ObjectId time.
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
 });
 
 export type Setlist = z.infer<typeof SetlistSchema>;
