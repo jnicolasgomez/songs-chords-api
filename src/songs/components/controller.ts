@@ -97,7 +97,7 @@ export default function (selectedStore?: Store<Song>) {
       delete incoming.shared_with;
     }
     // An edit must never restamp creation time, so the stored value wins.
-    incoming.createdAt = existingCreatedAt ?? incoming.createdAt ?? now;
+    incoming.createdAt = existingCreatedAt ?? now;
     incoming.updatedAt = now;
     const result = await injectedStore.upsert(SONGS_TABLE, incoming);
     if (incoming.artist) {
