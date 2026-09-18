@@ -90,4 +90,7 @@ export interface Store<T = any> {
   list: (table: string, fields?: string[]) => Promise<T[]>;
   query: (table: string, query: any) => Promise<T[]>;
   sharedWithUser: (table: string, userId: string) => Promise<T[]>;
+  // Firestore resolves to void, MongoDB to a deleted-document count. Callers
+  // treat removal as fire-and-forget, so the union is never narrowed.
+  remove: (table: string, id: string) => Promise<void | number>;
 }

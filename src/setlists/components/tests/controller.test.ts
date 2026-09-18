@@ -460,3 +460,109 @@ describe("setlist timestamps", () => {
     expect(saved.updatedAt).toMatch(ISO);
   });
 });
+
+describe("deleteSetlist", () => {
+  test("owner can delete their own setlist", async () => {
+    const store = makeMockStore([baseSetlist]);
+    const controller = controllerFactory(store);
+
+    const result = await controller.deleteSetlist("setlist-1", OWNER);
+
+    expect(result).toEqual({ id: "setlist-1" });
+    expect(store._data.has("setlist-1")).toBe(false);
+  });
+
+  test("a collaborator in shared_with may edit but not delete", async () => {
+    const store = makeMockStore([{ ...baseSetlist, shared_with: [OTHER] }]);
+    const controller = controllerFactory(store);
+
+    await expect(controller.deleteSetlist("setlist-1", OTHER)).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(store._data.has("setlist-1")).toBe(true);
+  });
+
+  test("a band member may edit but not delete", async () => {
+    const store = makeMockStore([{ ...baseSetlist, band_id: "band-1" }]);
+    const bands = makeMockBandsStore([
+      { id: "band-1", name: "Los Tests", created_by: OWNER, members: [OWNER, OTHER] },
+    ]);
+    const controller = controllerFactory(store, bands);
+
+    await expect(controller.deleteSetlist("setlist-1", OTHER)).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(store._data.has("setlist-1")).toBe(true);
+  });
+
+  test("unknown id is a 404", async () => {
+    const store = makeMockStore([baseSetlist]);
+    const controller = controllerFactory(store);
+
+    await expect(controller.deleteSetlist("nope", OWNER)).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+});
+
+describe("removeSongEverywhere", () => {
+  const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+  test("strips the song from songs and items, across owners", async () => {
+    const store = makeMockStore([
+      {
+        ...baseSetlist,
+        songs: ["s1", "s2"],
+        items: [
+          { type: "set", label: "Opening" },
+          { type: "song", songId: "s1" },
+          { type: "song", songId: "s2" },
+        ],
+      },
+      {
+        ...baseSetlist,
+        id: "setlist-2",
+        user_uid: OTHER,
+        songs: ["s2", "s3"],
+        items: [{ type: "song", songId: "s2" }, { type: "song", songId: "s3" }],
+      },
+    ]);
+    const controller = controllerFactory(store);
+
+    const touched = await controller.removeSongEverywhere("s2");
+
+    expect(touched).toBe(2);
+    const first = store._data.get("setlist-1")!;
+    expect(first.songs).toEqual(["s1"]);
+    expect(first.items).toEqual([
+      { type: "set", label: "Opening" },
+      { type: "song", songId: "s1" },
+    ]);
+    const second = store._data.get("setlist-2")!;
+    expect(second.songs).toEqual(["s3"]);
+    expect(second.items).toEqual([{ type: "song", songId: "s3" }]);
+  });
+
+  test("leaves setlists that never referenced the song untouched", async () => {
+    const store = makeMockStore([{ ...baseSetlist, songs: ["s1"] }]);
+    const controller = controllerFactory(store);
+
+    const touched = await controller.removeSongEverywhere("s9");
+
+    expect(touched).toBe(0);
+    expect(store._data.get("setlist-1")!.songs).toEqual(["s1"]);
+  });
+
+  test("bumps updatedAt on the setlists it rewrites", async () => {
+    const store = makeMockStore([
+      { ...baseSetlist, songs: ["s1"], createdAt: "2020-01-01T00:00:00.000Z" },
+    ]);
+    const controller = controllerFactory(store);
+
+    await controller.removeSongEverywhere("s1");
+
+    const saved = store._data.get("setlist-1")!;
+    expect(saved.updatedAt).toMatch(ISO);
+    expect(saved.createdAt).toBe("2020-01-01T00:00:00.000Z");
+  });
+});

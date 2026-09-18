@@ -1,16 +1,20 @@
 import * as store from "../../store/firestore.ts";
-import type { Song, Store } from "../types/types.ts";
+import type { Song, SongNote, Store } from "../types/types.ts";
 import artistsController from "../../artists/components/index.ts";
+import setlistsController from "../../setlists/components/index.ts";
 import { assertCanEdit, assertOwner } from "../../middleware/authz.ts";
 
 
 const SONGS_TABLE = process.env.SONGS_TABLE_NAME || "songs";
+const NOTES_TABLE = process.env.SONG_NOTES_TABLE_NAME || "song_notes";
 
-export default function (selectedStore?: Store<Song>) {
+export default function (selectedStore?: Store<Song>, selectedNotesStore?: Store<SongNote>) {
 
   let injectedStore: Store<Song> = store;
   // If no store is injected, use the default store
   injectedStore = selectedStore || store;
+  const notesStore: Store<SongNote> =
+    selectedNotesStore || (store as unknown as Store<SongNote>);
 
   async function listSongs(userId?: string): Promise<Song[]> {
     if (userId) {
@@ -148,6 +152,33 @@ export default function (selectedStore?: Store<Song>) {
     return injectedStore.upsert(SONGS_TABLE, { ...song, shared_with });
   }
 
+  /**
+   * Hard-deletes a song and everything that points at it: the private notes any
+   * user wrote on it, and its id inside every setlist that references it.
+   *
+   * Only the owner may delete — a collaborator in `shared_with` can edit the
+   * song but must not be able to destroy it. The cascades run before the song
+   * itself is removed, so a failure part-way through leaves the song reachable
+   * rather than leaving orphans pointing at a document that no longer exists.
+   */
+  async function deleteSong(id: string, uid: string): Promise<{ id: string }> {
+    const existing = await injectedStore.get(SONGS_TABLE, id);
+    if (!existing) throw Object.assign(new Error("Song not found"), { status: 404 });
+    assertOwner(existing, uid);
+
+    await setlistsController.removeSongEverywhere(id);
+
+    // Notes are per-user, so deleting the song clears every user's notes on it,
+    // not just the owner's.
+    const notes = await notesStore.query(NOTES_TABLE, [["songId", "==", id]]);
+    for (const note of notes) {
+      if (note.id) await notesStore.remove(NOTES_TABLE, note.id);
+    }
+
+    await injectedStore.remove(SONGS_TABLE, id);
+    return { id };
+  }
+
   return {
     upsertSong,
     patchSong,
@@ -159,5 +190,6 @@ export default function (selectedStore?: Store<Song>) {
     songsByBand,
     shareSong,
     unshareSong,
+    deleteSong,
   };
 }

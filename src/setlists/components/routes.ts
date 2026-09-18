@@ -222,6 +222,52 @@ router.get("/setlists/:id", optionalAuth, (req: Request, res: Response, next: Ne
 
 /**
  * @swagger
+ * /api/setlists/{id}:
+ *   delete:
+ *     summary: Delete a setlist
+ *     description: Only the owner may delete. Collaborators in shared_with and band members can edit the setlist but not remove it. The songs it referenced are left untouched — deleting a setlist never deletes songs.
+ *     tags: [Setlists]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Setlist ID
+ *     responses:
+ *       200:
+ *         description: Setlist deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *       403:
+ *         description: Invalid or missing JWT, or caller is not the owner
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Setlist not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.delete("/setlists/:id", requireAuth, writeLimiter, (req: Request, res: Response, next: NextFunction) => {
+  controller
+    .deleteSetlist(req.params.id, getUid(req))
+    .then((item) => success(req, res, item, 200))
+    .catch(next);
+});
+
+/**
+ * @swagger
  * /api/setlists/{id}/songs:
  *   post:
  *     summary: Add a song to an existing setlist

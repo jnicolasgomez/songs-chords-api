@@ -282,6 +282,52 @@ router.get("/songs/:id", (req: Request, res: Response, next: NextFunction) => {
 
 /**
  * @swagger
+ * /api/songs/{id}:
+ *   delete:
+ *     summary: Delete a song
+ *     description: Only the owner may delete. Collaborators in shared_with can edit the song but not remove it. Deleting also strips the song id out of every setlist that references it and removes all private notes written on it, so no dangling references are left behind.
+ *     tags: [Songs]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Song ID
+ *     responses:
+ *       200:
+ *         description: Song deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *       403:
+ *         description: Invalid or missing JWT, or caller is not the owner
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Song not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.delete("/songs/:id", requireAuth, writeLimiter, (req: Request, res: Response, next: NextFunction) => {
+  controller
+    .deleteSong(req.params.id, getUid(req))
+    .then((item) => success(req, res, item, 200))
+    .catch(next);
+});
+
+/**
+ * @swagger
  * /api/songs/{id}/collaborators:
  *   post:
  *     summary: Share a song with a collaborator by email
