@@ -170,6 +170,9 @@ export default function (injectedStore?: Store<Setlist>, injectedBandsStore?: St
       throw Object.assign(new Error(`Setlist ${setlistId} not found`), { status: 404 });
     }
     assertOwner(setlist, uid);
+    if (typeof selectedStore.remove !== "function") {
+      throw new Error("Store does not support removal");
+    }
     await selectedStore.remove(SETLISTS_TABLE, setlistId);
     return { id: setlistId };
   }
@@ -182,10 +185,14 @@ export default function (injectedStore?: Store<Setlist>, injectedBandsStore?: St
    * explanation. Returns how many setlists were rewritten.
    */
   async function removeSongEverywhere(songId: string): Promise<number> {
+    const now = new Date().toISOString();
+    if (typeof selectedStore.removeSongReferences === "function") {
+      return selectedStore.removeSongReferences(SETLISTS_TABLE, songId, now);
+    }
+
     const affected = await selectedStore.query(SETLISTS_TABLE, {
       $or: [{ songs: songId }, { "items.songId": songId }],
     });
-    const now = new Date().toISOString();
     for (const setlist of affected) {
       const updated: Setlist = { ...setlist, updatedAt: now };
       if (Array.isArray(setlist.songs)) {

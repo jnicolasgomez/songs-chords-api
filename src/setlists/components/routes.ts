@@ -244,8 +244,17 @@ router.get("/setlists/:id", optionalAuth, (req: Request, res: Response, next: Ne
  *             schema:
  *               type: object
  *               properties:
- *                 id:
- *                   type: string
+ *                 error:
+ *                   type: boolean
+ *                   example: false
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 body:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
  *       403:
  *         description: Invalid or missing JWT, or caller is not the owner
  *         content:

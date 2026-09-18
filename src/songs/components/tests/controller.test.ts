@@ -344,6 +344,21 @@ describe("deleteSong", () => {
     expect(notes._data.has("n3")).toBe(true);
   });
 
+  test("uses bulk note removal when the store supports it", async () => {
+    const store = makeMockStore([baseSong]);
+    const notes = makeMockStore<SongNote>([
+      { id: "n1", songId: "song-1", userId: OWNER, icon: "mdi-star", title: "mine", text: "" },
+      { id: "n2", songId: "song-1", userId: OTHER, icon: "mdi-star", title: "theirs", text: "" },
+    ]);
+    const removeMany = jest.fn().mockResolvedValue(undefined);
+    notes.removeMany = removeMany;
+    const controller = controllerFactory(store, notes);
+
+    await controller.deleteSong("song-1", OWNER);
+
+    expect(removeMany).toHaveBeenCalledWith("song_notes", ["n1", "n2"]);
+  });
+
   test("does not remove the song when the setlist cascade fails", async () => {
     const store = makeMockStore([baseSong]);
     const controller = controllerFactory(store);

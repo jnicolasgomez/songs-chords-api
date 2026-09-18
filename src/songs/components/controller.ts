@@ -165,14 +165,21 @@ export default function (selectedStore?: Store<Song>, selectedNotesStore?: Store
     const existing = await injectedStore.get(SONGS_TABLE, id);
     if (!existing) throw Object.assign(new Error("Song not found"), { status: 404 });
     assertOwner(existing, uid);
-
+    if (typeof injectedStore.remove !== "function") {
+      throw new Error("Store does not support removal");
+    }
     await setlistsController.removeSongEverywhere(id);
 
     // Notes are per-user, so deleting the song clears every user's notes on it,
     // not just the owner's.
     const notes = await notesStore.query(NOTES_TABLE, [["songId", "==", id]]);
-    for (const note of notes) {
-      if (note.id) await notesStore.remove(NOTES_TABLE, note.id);
+    const noteIds = notes.flatMap((note) => (note.id ? [note.id] : []));
+    if (typeof notesStore.removeMany === "function") {
+      await notesStore.removeMany(NOTES_TABLE, noteIds);
+    } else if (typeof notesStore.remove === "function") {
+      await Promise.all(noteIds.map((noteId) => notesStore.remove!(NOTES_TABLE, noteId)));
+    } else if (noteIds.length > 0) {
+      throw new Error("Store does not support removal");
     }
 
     await injectedStore.remove(SONGS_TABLE, id);

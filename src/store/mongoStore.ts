@@ -92,6 +92,32 @@ async function remove(table: string, id: string): Promise<number> {
   return result.deletedCount;
 }
 
+/**
+ * Atomically removes a song from every setlist that references it. Updating
+ * only the affected fields prevents a concurrent setlist edit from being
+ * overwritten by a stale document snapshot.
+ */
+async function removeSongReferences(table: string, songId: string, updatedAt: string): Promise<number> {
+  if (!database) {
+    throw new Error("Database not connected");
+  }
+  const collection = database.collection(table);
+  const result = await collection.updateMany(
+    {
+      $or: [{ songs: songId }, { "items.songId": songId }],
+    },
+    {
+      $pull: {
+        songs: songId,
+        items: { type: "song", songId },
+      },
+      $set: { updatedAt },
+    },
+  );
+  cache.invalidate(table);
+  return result.modifiedCount;
+}
+
 async function query<T extends Document = Document>(table: string, q: Filter<T>): Promise<T[]> {
   if (!database) {
     throw new Error("Database not connected");
@@ -178,5 +204,4 @@ async function ping(): Promise<boolean> {
   }
 }
 
-export { connect, disconnect, list, get, upsert, remove, query, byUserId, listPublic, byIdsArray, sharedWithUser, ping };
-
+export { connect, disconnect, list, get, upsert, remove, removeSongReferences, query, byUserId, listPublic, byIdsArray, sharedWithUser, ping };

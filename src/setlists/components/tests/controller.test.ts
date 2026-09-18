@@ -508,6 +508,21 @@ describe("deleteSetlist", () => {
 describe("removeSongEverywhere", () => {
   const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
+  test("uses the store's atomic song-reference removal when available", async () => {
+    const store = makeMockStore([{ ...baseSetlist, songs: ["s1"] }]);
+    const removeSongReferences = jest.fn().mockResolvedValue(1);
+    store.removeSongReferences = removeSongReferences;
+    const controller = controllerFactory(store);
+
+    await expect(controller.removeSongEverywhere("s1")).resolves.toBe(1);
+
+    expect(removeSongReferences).toHaveBeenCalledWith(
+      "lists",
+      "s1",
+      expect.stringMatching(ISO),
+    );
+  });
+
   test("strips the song from songs and items, across owners", async () => {
     const store = makeMockStore([
       {
