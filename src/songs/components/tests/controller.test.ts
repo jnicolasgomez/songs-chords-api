@@ -1,11 +1,16 @@
 import controllerFactory from "../controller.ts";
-import type { Song } from "../../types/types.ts";
+import type { Song, SongNote } from "../../types/types.ts";
+import setlistsController from "../../../setlists/components/index.ts";
 import { makeMockStore } from "./mockStore.ts";
 
 jest.mock("../../../store/firestore.ts", () => ({}));
 jest.mock("../../../artists/components/index.ts", () => ({
   __esModule: true,
   default: { upsertArtist: jest.fn().mockResolvedValue(undefined) },
+}));
+jest.mock("../../../setlists/components/index.ts", () => ({
+  __esModule: true,
+  default: { removeSongEverywhere: jest.fn().mockResolvedValue(0) },
 }));
 
 const OWNER = "u1";
@@ -270,5 +275,98 @@ describe("timestamps", () => {
     const saved = store._data.get("song-1")!;
     expect(saved.updatedAt).toMatch(ISO);
     expect("createdAt" in saved).toBe(false);
+  });
+});
+
+describe("deleteSong", () => {
+  test("owner can delete their own song", async () => {
+    const store = makeMockStore([baseSong]);
+    const controller = controllerFactory(store, makeMockStore<SongNote>());
+
+    const result = await controller.deleteSong("song-1", OWNER);
+
+    expect(result).toEqual({ id: "song-1" });
+    expect(store._data.has("song-1")).toBe(false);
+  });
+
+  test("a collaborator in shared_with may edit but not delete", async () => {
+    const store = makeMockStore([{ ...baseSong, shared_with: [OTHER] }]);
+    const controller = controllerFactory(store);
+
+    await expect(controller.deleteSong("song-1", OTHER)).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(store._data.has("song-1")).toBe(true);
+  });
+
+  test("an unrelated user cannot delete a public song", async () => {
+    const store = makeMockStore([{ ...baseSong, public: true }]);
+    const controller = controllerFactory(store);
+
+    await expect(controller.deleteSong("song-1", OTHER)).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(store._data.has("song-1")).toBe(true);
+  });
+
+  test("unknown id is a 404", async () => {
+    const store = makeMockStore([baseSong]);
+    const controller = controllerFactory(store);
+
+    await expect(controller.deleteSong("nope", OWNER)).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  test("cascades into setlists that reference the song", async () => {
+    const store = makeMockStore([baseSong]);
+    const controller = controllerFactory(store, makeMockStore<SongNote>());
+
+    await controller.deleteSong("song-1", OWNER);
+
+    expect(setlistsController.removeSongEverywhere).toHaveBeenCalledWith("song-1");
+  });
+
+  test("deletes every user's private notes on the song", async () => {
+    const store = makeMockStore([baseSong]);
+    const notes = makeMockStore<SongNote>([
+      { id: "n1", songId: "song-1", userId: OWNER, icon: "mdi-star", title: "mine", text: "" },
+      { id: "n2", songId: "song-1", userId: OTHER, icon: "mdi-star", title: "theirs", text: "" },
+      { id: "n3", songId: "song-9", userId: OWNER, icon: "mdi-star", title: "other song", text: "" },
+    ]);
+    const controller = controllerFactory(store, notes);
+
+    await controller.deleteSong("song-1", OWNER);
+
+    expect(notes._data.has("n1")).toBe(false);
+    expect(notes._data.has("n2")).toBe(false);
+    // A note belonging to a different song survives.
+    expect(notes._data.has("n3")).toBe(true);
+  });
+
+  test("uses bulk note removal when the store supports it", async () => {
+    const store = makeMockStore([baseSong]);
+    const notes = makeMockStore<SongNote>([
+      { id: "n1", songId: "song-1", userId: OWNER, icon: "mdi-star", title: "mine", text: "" },
+      { id: "n2", songId: "song-1", userId: OTHER, icon: "mdi-star", title: "theirs", text: "" },
+    ]);
+    const removeMany = jest.fn().mockResolvedValue(undefined);
+    notes.removeMany = removeMany;
+    const controller = controllerFactory(store, notes);
+
+    await controller.deleteSong("song-1", OWNER);
+
+    expect(removeMany).toHaveBeenCalledWith("song_notes", ["n1", "n2"]);
+  });
+
+  test("does not remove the song when the setlist cascade fails", async () => {
+    const store = makeMockStore([baseSong]);
+    const controller = controllerFactory(store);
+    (setlistsController.removeSongEverywhere as jest.Mock).mockRejectedValueOnce(
+      new Error("mongo down"),
+    );
+
+    await expect(controller.deleteSong("song-1", OWNER)).rejects.toThrow("mongo down");
+    expect(store._data.has("song-1")).toBe(true);
   });
 });

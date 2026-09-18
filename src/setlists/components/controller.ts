@@ -162,6 +162,52 @@ export default function (injectedStore?: Store<Setlist>, injectedBandsStore?: St
     return updated;
   }
 
+  // Only the owner may delete. A collaborator in shared_with can edit the
+  // setlist but must not be able to destroy it.
+  async function deleteSetlist(setlistId: string, uid: string): Promise<{ id: string }> {
+    const setlist = await selectedStore.get(SETLISTS_TABLE, setlistId);
+    if (!setlist) {
+      throw Object.assign(new Error(`Setlist ${setlistId} not found`), { status: 404 });
+    }
+    assertOwner(setlist, uid);
+    if (typeof selectedStore.remove !== "function") {
+      throw new Error("Store does not support removal");
+    }
+    await selectedStore.remove(SETLISTS_TABLE, setlistId);
+    return { id: setlistId };
+  }
+
+  /**
+   * Strips a song id out of every setlist that references it, in `songs` and in
+   * `items`. Called when the song itself is deleted: leaving the id behind is
+   * worse than editing somebody else's setlist, because `getSongsByIds` drops
+   * unknown ids silently and the setlist would just render short with no
+   * explanation. Returns how many setlists were rewritten.
+   */
+  async function removeSongEverywhere(songId: string): Promise<number> {
+    const now = new Date().toISOString();
+    if (typeof selectedStore.removeSongReferences === "function") {
+      return selectedStore.removeSongReferences(SETLISTS_TABLE, songId, now);
+    }
+
+    const affected = await selectedStore.query(SETLISTS_TABLE, {
+      $or: [{ songs: songId }, { "items.songId": songId }],
+    });
+    for (const setlist of affected) {
+      const updated: Setlist = { ...setlist, updatedAt: now };
+      if (Array.isArray(setlist.songs)) {
+        updated.songs = setlist.songs.filter((s) => s !== songId);
+      }
+      if (Array.isArray(setlist.items)) {
+        updated.items = (setlist.items as SetlistItem[]).filter(
+          (it) => !(it.type === "song" && it.songId === songId),
+        );
+      }
+      await selectedStore.upsert(SETLISTS_TABLE, updated);
+    }
+    return affected.length;
+  }
+
   return {
     getSetlists,
     upsertSetlist,
@@ -172,5 +218,7 @@ export default function (injectedStore?: Store<Setlist>, injectedBandsStore?: St
     addSongToSetlist,
     shareSetlist,
     unshareSetlist,
+    deleteSetlist,
+    removeSongEverywhere,
   };
 }

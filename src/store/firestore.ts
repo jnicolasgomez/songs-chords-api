@@ -167,6 +167,27 @@ export async function remove(collection: string, id: string): Promise<void> {
   console.log(`Document ${id} removed from ${collection}`);
 }
 
+const MAX_BATCH_WRITES = 450;
+
+/**
+ * Removes documents in bounded Firestore batches. A batch may contain at most
+ * 500 writes, so leaving headroom keeps this safe if the implementation grows.
+ */
+export async function removeMany(collectionName: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  await connect();
+  if (!db) throw new Error("Not connected to Firestore");
+
+  for (const idsBatch of chunkArray(ids, MAX_BATCH_WRITES)) {
+    const writeBatch = db.batch();
+    for (const id of idsBatch) {
+      writeBatch.delete(db.collection(collectionName).doc(id));
+    }
+    await writeBatch.commit();
+  }
+  cache.invalidate(collectionName);
+}
+
 type QueryCondition = [string, string, any];
 
 /**

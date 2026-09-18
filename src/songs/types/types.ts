@@ -90,4 +90,13 @@ export interface Store<T = any> {
   list: (table: string, fields?: string[]) => Promise<T[]>;
   query: (table: string, query: any) => Promise<T[]>;
   sharedWithUser: (table: string, userId: string) => Promise<T[]>;
+  // Not every read/write store needs deletion support. Controllers that delete
+  // data check for this capability before starting a destructive operation.
+  remove?: (table: string, id: string) => Promise<void | number>;
+  // Bulk removal lets backends with write-batch limits delete many documents
+  // without a request per document.
+  removeMany?: (table: string, ids: string[]) => Promise<void>;
+  // MongoDB can remove song references without replacing stale setlist
+  // snapshots. Other stores may omit it and use the controller fallback.
+  removeSongReferences?: (table: string, songId: string, updatedAt: string) => Promise<number>;
 }

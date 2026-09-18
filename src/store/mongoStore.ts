@@ -1,4 +1,4 @@
-import { MongoClient, ObjectId} from "mongodb";
+import { MongoClient } from "mongodb";
 import type { Document, Db, Collection, Filter, WithId} from 'mongodb'
 import config from "../../config.js";
 import { chunkArray } from "../utils/array.ts";
@@ -83,13 +83,39 @@ async function remove(table: string, id: string): Promise<number> {
     throw new Error("Database not connected");
   }
   const collection = database.collection(table);
-  // Try to convert string id to ObjectId if it's a valid ObjectId format
-  const filter = ObjectId.isValid(id) && id.length === 24
-    ? { _id: new ObjectId(id) }
-    : { _id: id as unknown as ObjectId };
-  const result = await collection.deleteOne(filter);
+  // Documents are addressed by their `id` field, not by `_id` — `get` and
+  // `upsert` both filter that way, and ids are app-generated strings (UUIDs)
+  // rather than ObjectIds. Filtering on `_id` here made deleteOne match nothing
+  // and report success with deletedCount 0.
+  const result = await collection.deleteOne({ id } as unknown as Filter<Document>);
   cache.invalidate(table);
   return result.deletedCount;
+}
+
+/**
+ * Atomically removes a song from every setlist that references it. Updating
+ * only the affected fields prevents a concurrent setlist edit from being
+ * overwritten by a stale document snapshot.
+ */
+async function removeSongReferences(table: string, songId: string, updatedAt: string): Promise<number> {
+  if (!database) {
+    throw new Error("Database not connected");
+  }
+  const collection = database.collection(table);
+  const result = await collection.updateMany(
+    {
+      $or: [{ songs: songId }, { "items.songId": songId }],
+    },
+    {
+      $pull: {
+        songs: songId,
+        items: { type: "song", songId },
+      },
+      $set: { updatedAt },
+    },
+  );
+  cache.invalidate(table);
+  return result.modifiedCount;
 }
 
 async function query<T extends Document = Document>(table: string, q: Filter<T>): Promise<T[]> {
@@ -178,5 +204,4 @@ async function ping(): Promise<boolean> {
   }
 }
 
-export { connect, disconnect, list, get, upsert, remove, query, byUserId, listPublic, byIdsArray, sharedWithUser, ping };
-
+export { connect, disconnect, list, get, upsert, remove, removeSongReferences, query, byUserId, listPublic, byIdsArray, sharedWithUser, ping };
