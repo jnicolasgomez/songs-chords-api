@@ -1,6 +1,6 @@
 import * as store from "../../store/mongoStore.ts";
 import type { Store } from "../../songs/types/types.ts";
-import type { Setlist, SetlistItem } from "../types/types.ts";
+import type { Setlist, SetlistItem, SetlistPreview } from "../types/types.ts";
 import { assertCanEdit, assertOwner, canEdit } from "../../middleware/authz.ts";
 import type { Band } from "../../bands/types/types.ts";
 
@@ -62,6 +62,27 @@ export default function (injectedStore?: Store<Setlist>, injectedBandsStore?: St
       throw Object.assign(new Error(`Setlist ${id} not found`), { status: 404 });
     }
     return [setlist];
+  }
+
+  // Link-preview projection. Deliberately skips canView: social crawlers fetch
+  // a shared URL anonymously, so going through setlistById would 404 on every
+  // private setlist and the card would fall back to the generic site image.
+  // The projection is what keeps that safe-ish — title and song count only,
+  // never the songs, collaborators, owner or band. Anyone holding (or guessing)
+  // an id can read those two fields; the setlist itself stays behind canView.
+  async function setlistPreview(id: string): Promise<SetlistPreview> {
+    const setlists = await selectedStore.query(SETLISTS_TABLE, { id });
+    const setlist = setlists[0];
+    if (!setlist) {
+      throw Object.assign(new Error(`Setlist ${id} not found`), { status: 404 });
+    }
+    // Prefer items: it is the current model, and counting it directly skips the
+    // sets and pauses that a bare items.length would include. `songs` is kept in
+    // sync by upsertSetlist, but older setlists only ever had `songs`.
+    const songCount = Array.isArray(setlist.items)
+      ? songIdsFromItems(setlist.items).length
+      : (setlist.songs?.length ?? 0);
+    return { id: setlist.id, title: setlist.title, songCount };
   }
 
   async function publicSetlists(): Promise<Setlist[]> {
@@ -215,6 +236,7 @@ export default function (injectedStore?: Store<Setlist>, injectedBandsStore?: St
     setlistsByBand,
     publicSetlists,
     setlistById,
+    setlistPreview,
     addSongToSetlist,
     shareSetlist,
     unshareSetlist,

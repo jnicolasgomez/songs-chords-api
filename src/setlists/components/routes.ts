@@ -211,6 +211,65 @@ router.get("/setlists", authForScopedQueries, (req: SetlistRequest, res: Respons
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+/**
+ * @swagger
+ * /api/setlists/{id}/preview:
+ *   get:
+ *     summary: Link-preview metadata for a setlist
+ *     description: |
+ *       Unauthenticated on purpose. Social crawlers (WhatsApp, Telegram, Facebook)
+ *       fetch a shared URL with no token, so `GET /api/setlists/{id}` 404s on every
+ *       private setlist and the preview card falls back to the generic site image.
+ *       This endpoint answers for any existing id with the title and song count and
+ *       nothing else — no songs, collaborators, owner or band. Reading the setlist
+ *       itself still requires passing the visibility check on `GET /api/setlists/{id}`.
+ *     tags: [Setlists]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Setlist ID
+ *     responses:
+ *       200:
+ *         description: Preview metadata
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: boolean
+ *                   example: false
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 body:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     title:
+ *                       type: string
+ *                     songCount:
+ *                       type: integer
+ *       404:
+ *         description: Setlist not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get("/setlists/:id/preview", (req: Request, res: Response, next: NextFunction) => {
+  controller
+    .setlistPreview(req.params.id)
+    .then((item) => {
+      success(req, res, item, 200);
+    })
+    .catch(next);
+});
+
 router.get("/setlists/:id", optionalAuth, (req: Request, res: Response, next: NextFunction) => {
   controller
     .setlistById(req.params.id, getOptionalUid(req))
