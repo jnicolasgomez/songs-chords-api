@@ -581,3 +581,80 @@ describe("removeSongEverywhere", () => {
     expect(saved.createdAt).toBe("2020-01-01T00:00:00.000Z");
   });
 });
+
+describe("setlistPreview", () => {
+  const privateSetlist: Setlist = { ...baseSetlist, private: true };
+
+  // The whole point of the endpoint: link-preview crawlers are anonymous, so a
+  // private setlist has to answer here even though setlistById hides it.
+  test("answers for a private setlist with no caller", async () => {
+    const store = makeMockStore([{ ...privateSetlist, songs: ["s1", "s2"] }]);
+    const controller = controllerFactory(store);
+
+    await expect(controller.setlistPreview("setlist-1")).resolves.toEqual({
+      id: "setlist-1",
+      title: "Demo",
+      songCount: 2,
+    });
+  });
+
+  test("exposes nothing beyond id, title and song count", async () => {
+    const store = makeMockStore([
+      {
+        ...privateSetlist,
+        songs: ["s1"],
+        user_uid: OWNER,
+        shared_with: [OTHER],
+        band_id: "band-1",
+      },
+    ]);
+    const controller = controllerFactory(store);
+
+    const preview = await controller.setlistPreview("setlist-1");
+
+    expect(Object.keys(preview).sort()).toEqual(["id", "songCount", "title"]);
+  });
+
+  test("counts only song items, not sets and pauses", async () => {
+    const store = makeMockStore([
+      {
+        ...privateSetlist,
+        items: [
+          { type: "set", label: "Opening" },
+          { type: "song", songId: "s1" },
+          { type: "pause", minutes: 15 },
+          { type: "song", songId: "s2" },
+          { type: "song", songId: "s3" },
+        ],
+      },
+    ]);
+    const controller = controllerFactory(store);
+
+    await expect(controller.setlistPreview("setlist-1")).resolves.toMatchObject({
+      songCount: 3,
+    });
+  });
+
+  test("falls back to songs on a legacy setlist with no items", async () => {
+    const store = makeMockStore([{ ...baseSetlist, songs: ["s1", "s2", "s3"] }]);
+    const controller = controllerFactory(store);
+
+    await expect(controller.setlistPreview("setlist-1")).resolves.toMatchObject({
+      songCount: 3,
+    });
+  });
+
+  test("reports zero for a setlist with neither items nor songs", async () => {
+    const controller = controllerFactory(makeMockStore([{ ...baseSetlist }]));
+
+    await expect(controller.setlistPreview("setlist-1")).resolves.toMatchObject({
+      songCount: 0,
+    });
+  });
+
+  test("404s on an unknown id", async () => {
+    const controller = controllerFactory(makeMockStore([{ ...baseSetlist }]));
+
+    await expect(controller.setlistPreview("nope")).rejects.toMatchObject({ status: 404 });
+  });
+});

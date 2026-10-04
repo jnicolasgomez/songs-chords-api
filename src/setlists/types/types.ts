@@ -42,3 +42,12 @@ export const SetlistSchema = z.looseObject({
 });
 
 export type Setlist = z.infer<typeof SetlistSchema>;
+
+// Minimal, world-readable shape behind GET /api/setlists/:id/preview. Exists so
+// link-preview crawlers (which are always anonymous) can render a card for a
+// private setlist without the endpoint handing out the setlist itself.
+export type SetlistPreview = {
+  id: string;
+  title: string;
+  songCount: number;
+};
